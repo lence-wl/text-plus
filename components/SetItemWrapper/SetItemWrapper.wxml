@@ -1,0 +1,8 @@
+<view class="set_item_wrapper {{ wrapperClass }}">
+			<view class="set_item_label">
+				{{ label }}
+			</view>
+			<view class="set_item_field {{ fieldClass }}">
+				<slot /> 
+			</view>
+</view>

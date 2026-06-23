@@ -1,0 +1,27 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/douyin/douyin",
+    "pages/scroll-multi/multi",
+    "pages/wallpaper/wallpaper",
+    "pages/countdown/countdown",
+    "pages/wheel/wheel",
+    "pages/gridcut/gridcut",
+    "pages/chatmock/chatmock",
+    "pages/clock/clock",
+    "pages/relax/relax"
+  ],
+  "window": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "文字工具箱",
+    "navigationBarBackgroundColor": "#1a1a2e"
+  },
+  "usingComponents": {
+    "back-btn": "components/back-btn/back-btn",
+    "van-dropdown-menu": "components/vant/dropdown-menu/index",
+    "van-dropdown-item": "components/vant/dropdown-item/index"
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

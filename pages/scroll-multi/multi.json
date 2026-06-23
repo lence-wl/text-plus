@@ -1,0 +1,13 @@
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn",
+    "ColorPicker": "../../components/ColorPicker/ColorPicker",
+    "van-slider": "../../components/vant/slider/index",
+    "van-switch": "../../components/vant/switch/index",
+    "van-action-sheet": "../../components/vant/action-sheet/index",
+    "van-overlay": "../../components/vant/overlay/index",
+    "van-transition": "../../components/vant/transition/index"
+  },
+  "navigationStyle": "custom",
+  "enableShareTimeline": true
+}

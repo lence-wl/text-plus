@@ -1,0 +1,3 @@
+<view class="back-btn" style="top: {{top}};" catch:tap="onTap">
+  <text class="back-btn__arrow">←</text>
+</view>

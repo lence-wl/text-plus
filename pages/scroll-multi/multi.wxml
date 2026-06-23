@@ -1,0 +1,101 @@
+<view class="page">
+	<!-- 返回按钮 -->
+	<back-btn />
+
+	<!-- 滚动区域（双击打开设置） -->
+	<view class="scroll-stage {{config.screenDirection === 'landscape' ? 'scroll-stage--landscape' : ''}}" style="background: {{config.bgColor}};" bindtouchstart="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent">
+		<view class="scroll-track" style="transform: translateY({{scrollY}}px);font-size: {{config.fontSize}}px;color: {{config.textColor}};">
+			<view class="scroll-block {{config.glowEnabled ? 'scroll-block--glow' : ''}}" style="text-align: {{config.textAlign}}; --glow-blur: {{config.glowBlur}}px; --glow-color: {{config.glowColor}};">
+				{{rawText}}
+			</view>
+		</view>
+	</view>
+
+	<!-- 遮罩 -->
+	<view class="mask" wx:if="{{showSettings}}" catchtap="closeSettings"></view>
+
+	<!-- 设置面板 -->
+	<view class="settings-panel {{showSettings ? 'settings-panel--show' : ''}}">
+		<view class="settings-panel__hd">
+			<text class="settings-panel__title">设置</text>
+			<text class="settings-panel__close" bindtap="closeSettings">✕</text>
+		</view>
+
+		<!-- 标签栏 -->
+		<view class="settings__tabs">
+			<view class="tab-item {{activeTab === 'content' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="content">内容</view>
+			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">字体</view>
+			<view class="tab-item {{activeTab === 'glow' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="glow">颜色</view>
+			<view class="tab-item {{activeTab === 'screen' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="screen">滚动</view>
+		</view>
+
+		<!-- 可滚动内容 -->
+		<scroll-view class="settings-panel__bd" scroll-y>
+
+			<view class="tab-pane" wx:if="{{activeTab === 'content'}}">
+				<textarea class="set-textarea" value="{{rawText}}" maxlength="1000" bindblur="onTextBlur" placeholder="输入文字，换行即分行..." auto-height />
+			</view>
+
+			<view class="tab-pane" wx:if="{{activeTab === 'style'}}">
+				<view class="set-row">
+					<text class="set-row__label">字体大小</text>
+					<van-slider min="20" max="120" step="2" value="{{config.fontSize}}" use-button-slot bind:change="onFontSizeChange">
+						<view class="custom-btn" slot="button">{{config.fontSize}}</view>
+					</van-slider>
+				</view>
+				
+				<view class="set-row">
+					<text class="set-row__label">对齐方式</text>
+					<view class="align-picker">
+						<view class="align-opt {{config.textAlign === 'left' ? 'align-opt--active' : ''}}" bindtap="onTextAlignChange" data-align="left">左对齐</view>
+						<view class="align-opt {{config.textAlign === 'center' ? 'align-opt--active' : ''}}" bindtap="onTextAlignChange" data-align="center">居中</view>
+					</view>
+				</view>
+			</view>
+
+			<view class="tab-pane" wx:if="{{activeTab === 'glow'}}">
+				<view class="set-row">
+					<text class="set-row__label">字体颜色</text>
+					<view style="flex:1;"><ColorPicker colorList="{{[config.textColor]}}" bind:colorChange="handleTextColorChange" /></view>
+				</view>
+				<view class="set-row">
+					<text class="set-row__label">背景颜色</text>
+					<view style="flex:1;"><ColorPicker colorList="{{[config.bgColor]}}" bind:colorChange="handleBgColorChange" /></view>
+				</view>
+				<view class="set-row">
+					<text class="set-row__label">发光</text>
+					<van-switch checked="{{config.glowEnabled}}" bind:change="onGlowEnabledChange" />
+				</view>
+				<block wx:if="{{config.glowEnabled}}">
+					<view class="set-row">
+						<text class="set-row__label">发光强度</text>
+						<van-slider min="2" max="40" step="1" value="{{config.glowBlur}}" use-button-slot bind:change="onGlowBlurChange">
+							<view class="custom-btn" slot="button">{{config.glowBlur}}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">发光颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.glowColor]}}" bind:colorChange="handleGlowColorChange" /></view>
+					</view>
+				</block>
+			</view>
+
+			<view class="tab-pane" wx:if="{{activeTab === 'screen'}}">
+				<view class="set-row">
+					<text class="set-row__label">滚动速度</text>
+					<van-slider min="1" max="10" step="0.5" value="{{config.scrollSpeed}}" use-button-slot bind:change="onScrollSpeedChange">
+						<view class="custom-btn" slot="button">{{config.scrollSpeed}}</view>
+					</van-slider>
+				</view>
+				<view class="set-row">
+					<text class="set-row__label">滚动方向</text>
+					<view class="align-picker">
+						<view class="align-opt {{config.screenDirection === 'portrait' ? 'align-opt--active' : ''}}" bindtap="onDirectionChange" data-direction="portrait">竖屏</view>
+						<view class="align-opt {{config.screenDirection === 'landscape' ? 'align-opt--active' : ''}}" bindtap="onDirectionChange" data-direction="landscape">横屏</view>
+					</view>
+				</view>
+			</view>
+
+		</scroll-view>
+	</view>
+</view>

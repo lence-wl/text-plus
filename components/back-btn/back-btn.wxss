@@ -1,0 +1,19 @@
+.back-btn {
+  position: fixed;
+  left: 24rpx;
+  z-index: 999;
+  transform: translateY(-50%);
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+
+.back-btn__arrow {
+  color: #fff;
+  font-size: 28rpx;
+  line-height: 1;
+}

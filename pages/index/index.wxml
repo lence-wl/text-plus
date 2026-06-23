@@ -1,0 +1,32 @@
+<scroll-view class="page" scroll-y>
+  <view wx:for="{{categories}}" wx:key="title" class="section">
+    <view class="section__head">
+      <view class="section__bar" style="background: {{item.color}}"></view>
+      <text class="section__title">{{item.title}}</text>
+    </view>
+    <view class="section__grid">
+      <view
+        wx:for="{{item.items}}"
+        wx:key="name"
+        wx:for-item="card"
+        class="card"
+        hover-class="card--hover"
+        data-page="{{card.page}}"
+        bindtap="onTapItem"
+      >
+        <view class="card__icon" style="background: {{item.color}}">
+          <text>{{card.icon}}</text>
+        </view>
+        <view class="card__info">
+          <text class="card__name">{{card.name}}</text>
+          <text class="card__desc">{{card.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="footer__text">更多工具开发中...</text>
+    <button class="footer__feedback" open-type="feedback">意见建议</button>
+  </view>
+</scroll-view>

@@ -1,0 +1,10 @@
+<view style="height:60rpx;">
+	<view class="color-list">
+		<view bindtap="tapHandle"  wx:for="{{colorList}}" wx:key="index" data-index="{{index}}" class="color-item" style="background-color: {{item}};border-radius: 10rpx;border: 1px solid #CCC;"></view>
+	</view>
+	<van-action-sheet bind:close="handleClose" show="{{ show }}" title="选择颜色">
+		<view class="color_options" style="display:flex">
+			<view bindtap="handleColorSelect"  data-color="{{item.value}}"  wx:for="{{color36List}}" wx:key="index" class="color-option" style="background-color: {{item.value}};">{{item.checked? '✔' : ''}}</view>
+		</view>	
+	</van-action-sheet>
+</view>

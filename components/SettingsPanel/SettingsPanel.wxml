@@ -1,0 +1,9 @@
+<view class="panel {{visible ? 'panel--show' : ''}}" wx:if="{{visible}}">
+  <view class="panel__hd">
+    <text class="panel__title">{{title}}</text>
+  </view>
+
+  <view class="panel__bd">
+    <slot />
+  </view>
+</view>

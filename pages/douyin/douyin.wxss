@@ -1,0 +1,134 @@
+page {
+  height: 100%;
+  background: #1a1a2e;
+}
+
+.page {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* 审核占位层 */
+.fallback-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
+}
+
+.fallback-text {
+  color: #ffffff;
+  font-size: 80rpx;
+  font-weight: bold;
+  letter-spacing: 10rpx;
+}
+
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  z-index: 1;
+  transition: height 0.3s ease;
+}
+
+.canvas--full {
+  height: 100vh;
+}
+
+.slider_wrapper {
+  padding: 0 15rpx;
+}
+
+.custom-button {
+  background: blue;
+  color: #FFF;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 30rpx;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.effect-picker {
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 特效选择弹出层 */
+.effect-sheet-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.effect-sheet {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  z-index: 101;
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+.effect-sheet--show {
+  transform: translateY(0);
+}
+
+.effect-sheet__title {
+  padding: 32rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1rpx solid #eee;
+}
+
+.effect-sheet__list {
+  max-height: 480rpx;
+  padding: 8rpx 0;
+}
+
+.effect-sheet__item {
+  padding: 28rpx 32rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #333;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.effect-sheet__item--active {
+  color: #667eea;
+  font-weight: 600;
+  background: #f0f0ff;
+}
+
+.effect-sheet__cancel {
+  padding: 28rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #999;
+  border-top: 8rpx solid #f5f5f5;
+}

@@ -1,0 +1,15 @@
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn",
+    "SettingsPanel": "../../components/SettingsPanel/SettingsPanel",
+    "SetItemWrapper": "../../components/SetItemWrapper/SetItemWrapper",
+    "ColorPicker": "../../components/ColorPicker/ColorPicker",
+    "van-slider": "../../components/vant/slider/index",
+    "van-switch": "../../components/vant/switch/index",
+    "van-field": "../../components/vant/field/index",
+    "van-dropdown-menu": "../../components/vant/dropdown-menu/index",
+    "van-dropdown-item": "../../components/vant/dropdown-item/index"
+  },
+  "navigationStyle": "custom",
+  "enableShareTimeline": true
+}
