@@ -1,1 +1,15 @@
-{"usingComponents":{}}
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn",
+    "SettingsPanel": "../../components/SettingsPanel/SettingsPanel",
+    "SetItemWrapper": "../../components/SetItemWrapper/SetItemWrapper",
+    "ColorPicker": "../../components/ColorPicker/ColorPicker",
+    "van-slider": "../../components/vant/slider/index",
+    "van-switch": "../../components/vant/switch/index",
+    "van-field": "../../components/vant/field/index",
+    "van-action-sheet": "../../components/vant/action-sheet/index"
+  },
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "navigationBarTitleText": "倒计时"
+}

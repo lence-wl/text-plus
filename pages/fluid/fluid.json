@@ -1,0 +1,11 @@
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn",
+    "SettingsPanel": "../../components/SettingsPanel/SettingsPanel",
+    "SetItemWrapper": "../../components/SetItemWrapper/SetItemWrapper",
+    "van-slider": "../../components/vant/slider/index"
+  },
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "navigationBarTitleText": "粒子喷泉"
+}

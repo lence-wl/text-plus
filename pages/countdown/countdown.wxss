@@ -1,1 +1,314 @@
-page{background:#1a1a2e}.page{display:flex;align-items:center;justify-content:center;height:100vh}.placeholder{color:#8890a8;font-size:32rpx}
+/* ========== 页面基底 ========== */
+page {
+  background: #1a1a2e;
+}
+.page {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* ========== 画布容器（支持旋转） ========== */
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
+}
+.stage--landscape {
+  width: 100vh;
+  height: 100vw;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
+}
+
+/* ========== 视频背景层 ========== */
+.bg-video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* ========== Canvas 层 ========== */
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
+
+/* ========== 审核占位层 ========== */
+.fallback-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.fallback-text {
+  color: #ffffff;
+  font-size: 80rpx;
+  font-weight: bold;
+  letter-spacing: 10rpx;
+}
+
+/* ========== 导出遮罩 ========== */
+.export-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(26, 26, 46, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.export-mask__title {
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 36rpx;
+}
+.export-mask__bar {
+  width: 60%;
+  height: 12rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+.export-mask__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f093fb, #667eea);
+  border-radius: 6rpx;
+  transition: width 0.2s ease;
+}
+
+/* ========== 底部切换按钮 ========== */
+.switch-bar {
+  position: fixed;
+  bottom: 60rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+.switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 40rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 40rpx;
+  backdrop-filter: blur(10px);
+}
+.switch-btn__text {
+  color: #ffffff;
+  font-size: 28rpx;
+  max-width: 240rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switch-btn__arrow {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 20rpx;
+}
+
+/* 底部小按钮（添加、导出） */
+.bottom-actions {
+  display: flex;
+  gap: 16rpx;
+}
+.action-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #ffffff;
+}
+
+/* ========== 设置面板内元素 ========== */
+
+/* 日期时间合并行 */
+.datetime-row {
+  display: flex;
+  gap: 12rpx;
+}
+.datetime-row .picker-value {
+  flex: 1;
+}
+
+/* 日期/时间 picker 展示值 */
+.picker-value {
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 精度选择列表 */
+.precision-list {
+  display: flex;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+.precision-item {
+  padding: 12rpx 20rpx;
+  border-radius: 8rpx;
+  background: #f5f5f5;
+  font-size: 24rpx;
+  color: #666;
+}
+.precision-item--active {
+  background: #667eea;
+  color: #fff;
+}
+
+/* 背景类型 tabs */
+.bg-type-list {
+  display: flex;
+  gap: 12rpx;
+}
+.bg-type-item {
+  flex: 1;
+  padding: 12rpx;
+  border-radius: 8rpx;
+  background: #f5f5f5;
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+}
+.bg-type-item--active {
+  background: #667eea;
+  color: #fff;
+}
+
+/* 内置渐变色块网格 */
+.builtin-bg-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+}
+.builtin-bg-swatch {
+  height: 80rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid transparent;
+  box-sizing: border-box;
+}
+.builtin-bg-swatch--active {
+  border-color: #667eea;
+}
+.builtin-bg-label {
+  color: #fff;
+  font-size: 20rpx;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 背景选择按钮 */
+.bg-select-btn {
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+}
+
+/* 新建模式操作按钮 */
+.form-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 30rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eee;
+}
+.btn-save {
+  flex: 1;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 12rpx;
+  text-align: center;
+}
+.btn-cancel {
+  padding: 20rpx 40rpx;
+  background: #f5f5f5;
+  color: #999;
+  font-size: 28rpx;
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+/* 删除按钮 */
+.delete-btn {
+  padding: 16rpx;
+  color: #ff4757;
+  font-size: 28rpx;
+  text-align: center;
+  border-top: 1rpx solid #eee;
+  margin-top: 20rpx;
+}
+
+/* ========== 方向选择 ========== */
+.direction-list {
+  display: flex;
+  gap: 12rpx;
+}
+.direction-item {
+  flex: 1;
+  padding: 12rpx;
+  border-radius: 8rpx;
+  background: #f5f5f5;
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+}
+.direction-item--active {
+  background: #667eea;
+  color: #fff;
+}
+
+/* ========== Vant 组件覆盖 ========== */
+.custom-button {
+  width: 60rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  border-radius: 8rpx;
+  color: #fff;
+  font-size: 24rpx;
+}

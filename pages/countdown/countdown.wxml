@@ -1,1 +1,217 @@
-<view class="page"><text class="placeholder">countdown — 开发中</text></view>
+<view class="page">
+  <!-- 返回按钮 -->
+  <back-btn />
+
+  <!-- ===== 画布容器（支持横竖屏旋转） ===== -->
+  <view class="stage {{currentCountdown.screenDirection === 'landscape' ? 'stage--landscape' : ''}}">
+    <!-- 背景视频（仅 video 模式下显示） -->
+    <video
+      wx:if="{{currentCountdown.bgType === 'video' && canvasReady}}"
+      id="bgVideo"
+      src="{{currentCountdown.bgValue}}"
+      class="bg-video"
+      autoplay
+      loop
+      muted
+      object-fit="cover"
+    />
+
+    <!-- 审核占位层（Canvas 就绪后隐藏） -->
+    <view class="fallback-layer" wx:if="{{!canvasReady}}">
+      <text class="fallback-text">{{currentCountdown.title || '倒计时'}}</text>
+    </view>
+
+    <!-- 主 Canvas -->
+    <canvas
+      type="2d"
+      id="countdownCanvas"
+      class="canvas"
+      style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+      bindtouchstart="touchEvent"
+      bindtouchmove="touchEvent"
+      bindtouchend="touchEvent"
+      bindtouchcancel="touchEvent"
+    />
+  </view>
+
+  <!-- 导出遮罩 -->
+  <view class="export-mask" wx:if="{{isExporting}}">
+    <text class="export-mask__title">生成倒计时卡片</text>
+    <view class="export-mask__bar">
+      <view class="export-mask__fill" style="width: {{exportProgress / exportTotal * 100 + '%'}}"></view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="switch-bar">
+    <!-- 添加 -->
+    <view class="action-btn" catch:tap="onAddCountdown">＋</view>
+
+    <!-- 切换按钮 -->
+    <view class="switch-btn" catch:tap="onOpenSwitchSheet">
+      <text class="switch-btn__text">{{currentCountdown.title}}</text>
+      <text class="switch-btn__arrow">▼</text>
+    </view>
+
+    <!-- 导出 -->
+    <view class="action-btn" catch:tap="onExport" wx:if="{{!isExporting}}">↓</view>
+  </view>
+
+  <!-- 切换列表 ActionSheet -->
+  <van-action-sheet
+    show="{{showSwitchSheet}}"
+    title="选择倒计时"
+    actions="{{switchSheetActions}}"
+    bind:close="onSwitchSheetClose"
+    bind:cancel="onSwitchSheetCancel"
+    bind:select="onSwitchSheetSelect"
+    cancel-text="取消"
+  />
+
+  <!-- ==================== 设置面板 ==================== -->
+  <SettingsPanel visible="{{showSettings}}" title="{{isNewCountdown ? '新建倒计时' : '倒计时设置'}}" bindclose="closeSettings">
+
+    <!-- 标题 -->
+    <SetItemWrapper label="标题" fieldClass="input_wrapper">
+      <van-field value="{{draft.title}}" bind:blur="onTitleChange" placeholder="如：生日、考研、旅行" />
+    </SetItemWrapper>
+
+    <!-- 目标时日 -->
+    <SetItemWrapper label="目标时日" fieldClass="input_wrapper">
+      <view class="datetime-row">
+        <picker mode="date" value="{{pickerDate}}" bindchange="onDateChange">
+          <view class="picker-value">{{pickerDate || '日期'}}</view>
+        </picker>
+        <picker mode="time" value="{{pickerTime}}" bindchange="onTimeChange">
+          <view class="picker-value">{{pickerTime || '时间'}}</view>
+        </picker>
+      </view>
+    </SetItemWrapper>
+
+    <!-- 显示精度 -->
+    <SetItemWrapper label="显示精度" fieldClass="input_wrapper">
+      <view class="precision-list">
+        <view
+          wx:for="{{precisionOptions}}"
+          wx:key="key"
+          class="precision-item {{draft.precision === item.key ? 'precision-item--active' : ''}}"
+          data-key="{{item.key}}"
+          catch:tap="onPrecisionChange"
+        >{{item.label}}</view>
+      </view>
+    </SetItemWrapper>
+
+    <!-- 文字颜色 -->
+    <SetItemWrapper label="文字颜色" fieldClass="slider_wrapper">
+      <ColorPicker colorList="{{[draft.textColor || '#ffffff']}}" bind:colorChange="onTextColorChange" />
+    </SetItemWrapper>
+
+    <!-- 文字阴影 -->
+    <SetItemWrapper label="文字阴影" fieldClass="slider_wrapper">
+      <van-switch checked="{{draft.textShadowEnabled !== false}}" bind:change="onShadowToggle" />
+    </SetItemWrapper>
+
+    <block wx:if="{{draft.textShadowEnabled !== false}}">
+      <SetItemWrapper label="阴影颜色" fieldClass="slider_wrapper">
+        <ColorPicker colorList="{{[draft.textShadowColor || '#000000']}}" bind:colorChange="onShadowColorChange" />
+      </SetItemWrapper>
+    </block>
+
+    <!-- 显示标题 -->
+    <SetItemWrapper label="显示标题" fieldClass="slider_wrapper">
+      <van-switch checked="{{draft.showTitle !== false}}" bind:change="onShowTitleToggle" />
+    </SetItemWrapper>
+
+    <!-- 显示日期 -->
+    <SetItemWrapper label="显示日期" fieldClass="slider_wrapper">
+      <van-switch checked="{{draft.showDate !== false}}" bind:change="onShowDateToggle" />
+    </SetItemWrapper>
+
+    <!-- 背景类型 -->
+    <SetItemWrapper label="背景类型" fieldClass="input_wrapper">
+      <view class="bg-type-list">
+        <view
+          class="bg-type-item {{draft.bgType === 'builtin' ? 'bg-type-item--active' : ''}}"
+          data-type="builtin"
+          catch:tap="onBgTypeChange"
+        >渐变</view>
+        <view
+          class="bg-type-item {{draft.bgType === 'image' ? 'bg-type-item--active' : ''}}"
+          data-type="image"
+          catch:tap="onBgTypeChange"
+        >图片</view>
+        <view
+          class="bg-type-item {{draft.bgType === 'video' ? 'bg-type-item--active' : ''}}"
+          data-type="video"
+          catch:tap="onBgTypeChange"
+        >视频</view>
+      </view>
+    </SetItemWrapper>
+
+    <!-- 内置渐变选择 -->
+    <block wx:if="{{draft.bgType === 'builtin'}}">
+      <SetItemWrapper label="渐变风格" fieldClass="input_wrapper">
+        <view class="builtin-bg-grid">
+          <view
+            wx:for="{{builtinBackgrounds}}"
+            wx:key="key"
+            class="builtin-bg-swatch {{draft.bgValue === item.key ? 'builtin-bg-swatch--active' : ''}}"
+            style="background: {{item.cssGradient}};"
+            data-key="{{item.key}}"
+            catch:tap="onSelectBuiltinBg"
+          >
+            <text class="builtin-bg-label">{{item.label}}</text>
+          </view>
+        </view>
+      </SetItemWrapper>
+    </block>
+
+    <!-- 图片选择 -->
+    <block wx:if="{{draft.bgType === 'image'}}">
+      <SetItemWrapper label="背景图片" fieldClass="input_wrapper">
+        <view class="bg-select-btn" catch:tap="onSelectBgImage">
+          <text>{{draft.bgValue ? '已选择（点击更换）' : '从相册选择'}}</text>
+        </view>
+      </SetItemWrapper>
+    </block>
+
+    <!-- 视频选择 -->
+    <block wx:if="{{draft.bgType === 'video'}}">
+      <SetItemWrapper label="背景视频" fieldClass="input_wrapper">
+        <view class="bg-select-btn" catch:tap="onSelectBgVideo">
+          <text>{{draft.bgValue ? '已选择（点击更换）' : '从相册选择'}}</text>
+        </view>
+      </SetItemWrapper>
+    </block>
+
+    <!-- 屏幕方向 -->
+    <SetItemWrapper label="屏幕方向" fieldClass="input_wrapper">
+      <view class="direction-list">
+        <view
+          class="direction-item {{(draft.screenDirection || currentCountdown.screenDirection || 'portrait') === 'portrait' ? 'direction-item--active' : ''}}"
+          data-direction="portrait"
+          catch:tap="onDirectionChange"
+        >竖屏</view>
+        <view
+          class="direction-item {{(draft.screenDirection || currentCountdown.screenDirection) === 'landscape' ? 'direction-item--active' : ''}}"
+          data-direction="landscape"
+          catch:tap="onDirectionChange"
+        >横屏</view>
+      </view>
+    </SetItemWrapper>
+
+    <!-- 新建模式：保存 + 取消按钮 -->
+    <block wx:if="{{isNewCountdown}}">
+      <view class="form-actions">
+        <view class="btn-save" catch:tap="onSaveNewCountdown">添加</view>
+        <view class="btn-cancel" catch:tap="onCancelNewCountdown">取消</view>
+      </view>
+    </block>
+
+    <!-- 删除（仅编辑已有倒计时时显示） -->
+    <block wx:if="{{!isNewCountdown}}">
+      <view class="delete-btn" catch:tap="onDeleteCountdown">删除此倒计时</view>
+    </block>
+
+  </SettingsPanel>
+</view>

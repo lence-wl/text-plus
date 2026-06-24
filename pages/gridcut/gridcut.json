@@ -1,1 +1,12 @@
-{"usingComponents":{}}
+{
+  "usingComponents": {
+    "SettingsPanel": "/components/SettingsPanel/SettingsPanel",
+    "SetItemWrapper": "/components/SetItemWrapper/SetItemWrapper",
+    "ColorPicker": "/components/ColorPicker/ColorPicker",
+    "van-field": "/components/vant/field/index",
+    "van-slider": "/components/vant/slider/index",
+    "van-switch": "/components/vant/switch/index"
+  },
+  "disableScroll": true,
+  "navigationBarTitleText": "九宫格切字"
+}

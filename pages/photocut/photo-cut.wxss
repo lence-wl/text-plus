@@ -1,0 +1,291 @@
+page {
+  height: 100%;
+  background: #1a1a2e;
+}
+
+.page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a1a2e;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===== Canvas 区域 ===== */
+
+.canvas-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.canvas-inner {
+  position: relative;
+}
+
+.canvas {
+  border-radius: 8rpx;
+  box-shadow: 0 0 60rpx rgba(0, 0, 0, 0.4);
+  display: block;
+}
+
+/* ===== 设置按钮（Canvas 右上角） ===== */
+
+.btn-settings {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  z-index: 5;
+}
+
+.btn-settings__icon {
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ===== 手势提示 ===== */
+
+.hint-bar {
+  position: absolute;
+  bottom: 20rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12rpx 28rpx;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 24rpx;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.hint-bar--show {
+  opacity: 1;
+}
+
+.hint-bar__text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+
+/* ===== 导出遮罩 ===== */
+
+.export-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(26, 26, 46, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 8rpx;
+}
+
+.export-mask__title {
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+}
+
+.export-mask__progress {
+  color: #8890a8;
+  font-size: 56rpx;
+  font-weight: bold;
+  margin-bottom: 36rpx;
+}
+
+.export-mask__bar {
+  width: 60%;
+  height: 12rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.export-mask__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f093fb, #667eea);
+  border-radius: 6rpx;
+  transition: width 0.2s ease;
+}
+
+/* ===== 底部操作栏 ===== */
+
+/* ===== 宫格模式栏 ===== */
+
+.mode-bar {
+  width: 100%;
+  padding: 12rpx 32rpx 0;
+  display: flex;
+  gap: 16rpx;
+  justify-content: center;
+	margin-bottom: 30rpx;
+}
+
+.mode-btn {
+  padding: 10rpx 24rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24rpx;
+  transition: all 0.2s;
+}
+
+.mode-btn--active {
+  background: rgba(240, 147, 251, 0.3);
+  color: #ffffff;
+}
+
+.bottom-bar {
+  width: 100%;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.btn--pick {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn--reset {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn--export {
+  background: linear-gradient(135deg, #f093fb, #667eea);
+}
+
+.btn--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+
+/* ===== 设置面板 ===== */
+
+.settings-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.settings-mask--show {
+  opacity: 1;
+}
+
+.settings-panel {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  background: #222244;
+  border-radius: 32rpx 32rpx 0 0;
+  z-index: 101;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.settings-panel--show {
+  transform: translateY(0);
+}
+
+.settings-panel__hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-panel__title {
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.settings-panel__close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.settings-panel__close text {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 28rpx;
+}
+
+.settings-panel__bd {
+  padding: 24rpx 32rpx;
+}
+
+.settings-item {
+  margin-bottom: 28rpx;
+}
+
+.settings-item__label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 28rpx;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+/* ===== 滑块自定义按钮 ===== */
+
+.custom-button {
+  width: 60rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+}

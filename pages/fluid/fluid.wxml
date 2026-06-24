@@ -1,0 +1,41 @@
+<view class="page">
+  <back-btn />
+  <canvas type="2d" id="fluidCanvas" class="canvas"
+    bindtouchstart="onTouchStart" bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd" />
+
+  <view class="controls">
+    <view class="ctrl-btn" catch:tap="onPalette">{{currentPalette.name}}</view>
+    <view class="ctrl-btn" catch:tap="toggleSettings">设置</view>
+    <view class="ctrl-btn ctrl-btn--danger" catch:tap="onClear">清屏</view>
+  </view>
+
+  <view class="settings-mask" wx:if="{{showSettings}}" catch:tap="closeSettings"></view>
+  <SettingsPanel visible="{{showSettings}}" title="粒子设置" bindclose="closeSettings">
+    <SetItemWrapper label="粒子大小" fieldClass="slider_wrapper">
+      <van-slider min="1" max="8" step="1" value="{{cfg.particleSize}}" use-button-slot bind:change="onSize">
+        <view class="custom-button" slot="button">{{cfg.particleSize}}</view>
+      </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="喷射数量" fieldClass="slider_wrapper">
+      <van-slider min="2" max="15" step="1" value="{{cfg.emitRate}}" use-button-slot bind:change="onRate">
+        <view class="custom-button" slot="button">{{cfg.emitRate}}</view>
+      </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="喷射速度" fieldClass="slider_wrapper">
+      <van-slider min="1" max="8" step="1" value="{{cfg.spraySpeed}}" use-button-slot bind:change="onSpeed">
+        <view class="custom-button" slot="button">{{cfg.spraySpeed}}</view>
+      </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="下落速度" fieldClass="slider_wrapper">
+      <van-slider min="0" max="10" step="1" value="{{cfg.gravity}}" use-button-slot bind:change="onGravity">
+        <view class="custom-button" slot="button">{{cfg.gravity}}</view>
+      </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="拖尾淡出" fieldClass="slider_wrapper">
+      <van-slider min="1" max="10" step="1" value="{{cfg.trailFade}}" use-button-slot bind:change="onFade">
+        <view class="custom-button" slot="button">{{cfg.trailFade}}</view>
+      </van-slider>
+    </SetItemWrapper>
+  </SettingsPanel>
+</view>

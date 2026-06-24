@@ -1,0 +1,34 @@
+page { background: #000; }
+.page { width: 100vw; height: 100vh; position: relative; overflow: hidden; background: #000; }
+.canvas { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; }
+
+.hint {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 5; pointer-events: none;
+}
+.hint text { color: rgba(255,255,255,0.3); font-size: 28rpx; }
+
+.controls {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 20rpx;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+.ctrl-btn {
+  height: 72rpx; padding: 0 32rpx; border-radius: 36rpx;
+  background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28rpx; color: #fff;
+}
+.ctrl-btn:active { background: rgba(255,255,255,0.25); }
+.ctrl-btn--danger { color: #ff6b6b; }
+.ctrl-btn--go { background: rgba(100,255,180,0.2); color: #64ffb4; }
+.ctrl-btn--stop { background: rgba(255,200,50,0.2); color: #ffc832; }
+.hint {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 5; pointer-events: none;
+}
+.hint text { color: rgba(255,255,255,0.25); font-size: 32rpx; }
+.custom-button { width: 60rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; background: #667eea; border-radius: 8rpx; color: #fff; font-size: 24rpx; }
+.settings-mask { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 9; }

@@ -9,11 +9,13 @@
     "pages/gridcut/gridcut",
     "pages/chatmock/chatmock",
     "pages/clock/clock",
-    "pages/relax/relax"
+    "pages/silk/silk",
+    "pages/fluid/fluid",
+    "pages/photocut/photo-cut"
   ],
   "window": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "文字工具箱",
+    "navigationBarTitleText": "文字滚动弹幕",
     "navigationBarBackgroundColor": "#1a1a2e"
   },
   "usingComponents": {

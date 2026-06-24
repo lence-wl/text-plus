@@ -1,0 +1,56 @@
+<view class="page">
+  <back-btn />
+
+  <!-- 全屏 Canvas -->
+  <canvas
+    type="2d"
+    id="silkCanvas"
+    class="canvas"
+    bindtouchstart="onTouchStart"
+    bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd"
+    bindtouchcancel="onTouchEnd"
+  />
+
+  <!-- 底部控制栏 -->
+  <view class="controls">
+    <!-- 颜色选择 -->
+    <view class="color-row">
+      <view
+        wx:for="{{palette}}"
+        wx:key="index"
+        class="color-dot {{activeColorIndex === index ? 'color-dot--active' : ''}}"
+        style="background: linear-gradient(135deg, {{item.color}}, {{item.highlight}});"
+        data-index="{{index}}"
+        catch:tap="onSelectColor"
+      />
+    </view>
+
+    <!-- 对称 / 镜像 / 螺旋 -->
+    <view class="ctrl-row">
+      <view class="ctrl-group">
+        <view class="ctrl-btn {{symmetry <= 1 ? 'ctrl-btn--disabled' : ''}}" catch:tap="onSymmetryDown">−</view>
+        <text class="ctrl-label">{{symmetry}} 轴</text>
+        <view class="ctrl-btn {{symmetry >= 12 ? 'ctrl-btn--disabled' : ''}}" catch:tap="onSymmetryUp">+</view>
+      </view>
+
+      <view class="ctrl-group">
+        <view class="ctrl-btn ctrl-btn--toggle {{mirror ? 'ctrl-btn--active' : ''}}" catch:tap="onToggleMirror">镜像</view>
+        <view class="ctrl-btn ctrl-btn--toggle {{spiral ? 'ctrl-btn--active' : ''}}" catch:tap="onToggleSpiral">螺旋</view>
+      </view>
+
+      <view class="ctrl-group">
+        <view class="ctrl-btn" catch:tap="onSave">
+          <text wx:if="{{!isExporting}}">保存</text>
+          <text wx:else>...</text>
+        </view>
+        <view class="ctrl-btn ctrl-btn--danger" catch:tap="onClear">清屏</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存中遮罩 -->
+  <view class="export-mask" wx:if="{{isExporting}}">
+    <text class="export-mask__title">保存中...</text>
+  </view>
+</view>

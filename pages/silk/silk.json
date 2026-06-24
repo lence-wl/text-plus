@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn"
+  },
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "navigationBarTitleText": "流光绘"
+}

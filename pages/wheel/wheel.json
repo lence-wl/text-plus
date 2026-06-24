@@ -1,1 +1,9 @@
-{"usingComponents":{}}
+{
+  "usingComponents": {
+    "back-btn": "../../components/back-btn/back-btn",
+    "van-action-sheet": "../../components/vant/action-sheet/index"
+  },
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "navigationBarTitleText": "随机转盘"
+}

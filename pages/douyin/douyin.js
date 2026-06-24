@@ -90,6 +90,7 @@ Page({
   },
 
   onShow: function () {
+    getApp().showInterstitial();
     if (!this.animationId && this.ctxRenderer && this.canvas) {
       this.animate();
     }

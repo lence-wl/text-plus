@@ -1,23 +1,28 @@
 /**
  * 多行滚动 — requestAnimationFrame 驱动
  */
+
+var STORAGE_KEY = 'scroll_multi_config';
+
+var DEFAULT_CONFIG = {
+  bgColor: '#1a1a2e',
+  scrollSpeed: 3,
+  fontSize: 30,
+  textColor: '#ffffff',
+  glowEnabled: true,
+  textAlign: 'center',
+  glowBlur: 12,
+  glowColor: '#ff66ff',
+  screenDirection: 'portrait'
+};
+
 Page({
   data: {
     showSettings: false,
     activeTab: 'content',
-    scrollY: 0,
+    scrollY: 9999,  // 初始在屏幕外，避免闪烁
     rawText: '开始懂了-孙燕姿\n\n我竟然没有调头\n最残忍那一刻\n静静看你走\n一点都不像我\n原来人会变得温柔\n是透彻的懂了\n爱情是流动的 不由人的\n何必激动着要理由\n相信你只是怕伤害我\n不是骗我\n很爱过谁会舍得\n把我的梦摇醒了\n宣布幸福不会来了\n用心酸微笑去原谅了\n也翻越了\n有昨天还是好的\n但明天是自己的\n开始懂了\n快乐是选择',
-    config: {
-      bgColor: '#1a1a2e',
-      scrollSpeed: 3,
-      fontSize: 30,
-      textColor: '#ffffff',
-      glowEnabled: true,
-      textAlign: 'center',
-      glowBlur: 12,
-      glowColor: '#ff66ff',
-      screenDirection: 'portrait'
-    }
+    config: { ...DEFAULT_CONFIG }
   },
 
   _screenH: 0,
@@ -31,6 +36,19 @@ Page({
   _lastTapTime: 0,
   _tapTimer: null,
 
+  onLoad: function () {
+    try {
+      var saved = wx.getStorageSync(STORAGE_KEY);
+      if (saved && typeof saved === 'object') {
+        this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
+      }
+    } catch (e) { /* ignore */ }
+  },
+
+  onShow: function () {
+    getApp().showInterstitial();
+  },
+
   onReady: function () {
     var self = this;
     setTimeout(function () { self._measureAndStart(); }, 500);
@@ -38,6 +56,7 @@ Page({
 
   onUnload: function () {
     this._stopScroll();
+    try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
   },
 
   // ========== 滚动核心：rAF + 直接 transform ==========
@@ -59,7 +78,7 @@ Page({
         self._scrollY = (self._screenH - self._blockHeight) / 2;
         self.setData({ scrollY: self._scrollY });
       } else {
-        // 内容超过一屏：从屏幕底部开始，向上滚动
+        // 内容超过一屏：从屏幕底部开始向上滚动
         self._scrollY = self._screenH;
         self.setData({ scrollY: self._scrollY });
         self._startLoop();
@@ -155,6 +174,7 @@ Page({
 
   closeSettings: function () {
     this.setData({ showSettings: false });
+    try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
   },
 
   onTabChange: function (e) {

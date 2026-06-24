@@ -1,1 +1,52 @@
-<view class="page"><text class="placeholder">wheel — 开发中</text></view>
+<view class="page">
+  <back-btn />
+
+  <!-- ===== Canvas 渲染区 ===== -->
+  <view class="canvas-wrap" bind:tap="onCanvasTap">
+    <canvas type="2d" id="wheelCanvas" />
+  </view>
+
+  <!-- ===== 结果展示条 ===== -->
+  <view class="result-bar">
+    <text wx:if="{{result}}" class="result-bar__text">🎯 {{result}}</text>
+    <text wx:if="{{result}}" class="result-bar__action" catch:tap="onReroll">重抽</text>
+    <text wx:if="{{!result}}" class="result-bar__placeholder">点击转盘开始随机</text>
+  </view>
+
+  <!-- ===== 选项标签列表 ===== -->
+  <view class="option-list">
+    <view wx:for="{{options}}" wx:key="*this" class="option-tag">
+      <text class="option-tag__text">{{item}}</text>
+      <view class="option-tag__del" data-index="{{index}}" catch:tap="onDeleteOption">✕</view>
+    </view>
+    <view class="option-tag option-tag--add" catch:tap="onAddOption">
+      <text class="option-tag__text">+ 添加</text>
+    </view>
+  </view>
+
+  <!-- ===== 底部操作 ===== -->
+  <view class="action-row">
+    <view class="bar-btn bar-btn--outline" catch:tap="onOpenScenes">快捷场景</view>
+    <view class="bar-btn bar-btn--primary" catch:tap="onCanvasTap">转动转盘</view>
+  </view>
+
+  <!-- ===== 快捷场景 ActionSheet ===== -->
+  <van-action-sheet
+    show="{{showSceneSheet}}"
+    title="快捷场景"
+    actions="{{sceneActions}}"
+    bind:close="onSceneSheetClose"
+    bind:select="onSceneSheetSelect"
+    cancel-text="取消"
+  />
+
+  <!-- ===== 结果弹窗 ===== -->
+  <view class="result-popup" wx:if="{{resultVisible}}" catch:tap="onCloseResult">
+    <view class="result-popup__card" catch:tap="">
+      <text class="result-popup__emoji">🎯</text>
+      <text class="result-popup__label">本次选中</text>
+      <text class="result-popup__value">{{result}}</text>
+      <view class="result-popup__btn" catch:tap="onCloseResult">知道了</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,53 @@
+<view class="page">
+  <!-- Canvas 预览区 -->
+  <view class="canvas-wrap">
+    <view class="canvas-inner" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+      <canvas
+        type="2d"
+        id="previewCanvas"
+        class="canvas"
+        style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+        bind:tap="onCanvasTap"
+      />
+
+      <!-- 手势提示 -->
+      <view class="hint-bar {{showHint ? 'hint-bar--show' : ''}}">
+        <text class="hint-bar__text">{{hintText}}</text>
+      </view>
+
+      <!-- 导出进度遮罩 -->
+      <view class="export-mask" wx:if="{{isExporting}}">
+        <text class="export-mask__title">正在生成九宫格</text>
+        <text class="export-mask__progress">{{exportProgress}} / {{exportTotal}}</text>
+        <view class="export-mask__bar">
+          <view class="export-mask__fill" style="width: {{exportProgress / exportTotal * 100+'%'}}"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 宫格模式 -->
+  <view class="mode-bar">
+    <view class="mode-btn {{config.gridRows==2&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="2">2×2</view>
+    <view class="mode-btn {{config.gridRows==3&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="2">3×2</view>
+    <view class="mode-btn {{config.gridRows==2&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="3">2×3</view>
+    <view class="mode-btn {{config.gridRows==3&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="3">3×3</view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="btn btn--pick" bind:tap="onPickImage">
+      <text>{{hasImage ? '换图' : '选图'}}</text>
+    </view>
+    <view class="btn btn--reset {{hasImage ? '' : 'btn--disabled'}}" bind:tap="onReset">
+      <text>重置</text>
+    </view>
+    <view class="btn btn--export {{hasImage && !isExporting ? '' : 'btn--disabled'}}" bind:tap="onExport">
+      <text>{{isExporting ? '导出中' : '生成'}}</text>
+    </view>
+  </view>
+
+</view>
