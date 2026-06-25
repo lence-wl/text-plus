@@ -1,7 +1,7 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/douyin/douyin",
+    "pages/single-text/single-text",
     "pages/scroll-multi/multi",
     "pages/wallpaper/wallpaper",
     "pages/countdown/countdown",
@@ -17,6 +17,11 @@
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "文字滚动弹幕",
     "navigationBarBackgroundColor": "#1a1a2e"
+  },
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "用于将生成的文字图片保存到你的相册中"
+    }
   },
   "usingComponents": {
     "back-btn": "components/back-btn/back-btn",

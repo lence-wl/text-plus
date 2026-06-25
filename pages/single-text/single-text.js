@@ -90,7 +90,10 @@ Page({
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    // 使用页面自己的广告实例，不能用全局的（微信限制：2005 错误）
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
     if (!this.animationId && this.ctxRenderer && this.canvas) {
       this.animate();
     }
@@ -116,7 +119,7 @@ Page({
     const text = encodeURIComponent(config.text || '双击修改文字');
     return {
       title: '文字特效 - ' + (config.text || '双击修改文字'),
-      path: '/pages/douyin/douyin?text=' + text + '&effect=' + (config.effectMode || 'rainbow')
+      path: '/pages/single-text/single-text?text=' + text + '&effect=' + (config.effectMode || 'rainbow')
     };
   },
 
@@ -209,13 +212,21 @@ Page({
   _initInterstitialAd: function () {
     if (wx.createInterstitialAd) {
       this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-d33d47dd88ebafab'
+        adUnitId: 'adunit-c9535d894c52703a'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[单行插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[单行插屏广告] 加载失败', err);
       });
       this._interstitialAd.onClose(() => {
         if (this._interstitialAd) {
           this._interstitialAd.load().catch(() => {});
         }
       });
+      // 创建后立即加载
+      this._interstitialAd.load();
     }
   },
 
@@ -286,7 +297,7 @@ Page({
         // 隐藏审核占位层
         this.setData({ canvasReady: true });
       } catch (e) {
-        console.error('[douyin] initCanvas2D error:', e && e.message);
+        console.error('[single-text] initCanvas2D error:', e && e.message);
         wx.showToast({ title: '渲染初始化失败', icon: 'none' });
       }
     });
@@ -482,7 +493,7 @@ Page({
           if (effect.animate) effect.animate(ctx, cfg, dt);
         }
       } catch (e) {
-        console.error('[douyin] animate error:', e && e.message);
+        console.error('[single-text] animate error:', e && e.message);
         if (self.animationId && canvas && canvas.cancelAnimationFrame) {
           canvas.cancelAnimationFrame(self.animationId);
           self.animationId = null;

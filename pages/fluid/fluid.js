@@ -14,10 +14,11 @@ var PALETTES = [
 var DEFAULTS = {
   paletteIdx: 0,
   particleSize: 3,
-  emitRate: 6,
   spraySpeed: 1,
   gravity: 10,
   trailFade: 5,
+  particleLife: 50,
+  maxParticles: 1500,
 };
 
 Page({
@@ -29,6 +30,7 @@ Page({
 
   _canvas: null, _ctx: null, _dpr: 1, _sw: 0, _sh: 0,
   _animId: null,
+  _initTimer: null,
   _particles: [],
   _strokes: [],        // [{ points, paletteIdx }]
   _curStroke: null,    // 当前正在画的笔画
@@ -42,21 +44,53 @@ Page({
         this.setData({ cfg: c, currentPalette: PALETTES[c.paletteIdx || 0] });
       }
     } catch (e) {}
+    this._initInterstitialAd();
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
     var self = this;
-    setTimeout(function () { self._init(); }, 200);
+    this._initTimer = setTimeout(function () {
+      self._initTimer = null;
+      self._init();
+    }, 200);
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
     if (this._animId && this._canvas) this._canvas.cancelAnimationFrame(this._animId);
     wx.stopAccelerometer();
     try { wx.setStorageSync(STORAGE_KEY, this.data.cfg); } catch (e) {}
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-1e816ec0731138cf'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[粒子喷泉插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[粒子喷泉插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
   },
 
   _init: function () {
@@ -97,9 +131,25 @@ Page({
     var particles = this._particles;
     var sw = this._sw, sh = this._sh;
 
-    // 发射新粒子
-    var maxNew = Math.min(cfg.emitRate, 250 - particles.length);
-    for (var i = 0; i < maxNew; i++) {
+    // 更新 + 淘汰
+    var grav = cfg.gravity / 100;
+    var before = particles.length;
+    for (var j = particles.length - 1; j >= 0; j--) {
+      var o = particles[j];
+      o.x += o.vx; o.y += o.vy;
+      o.vx += this._gx * grav * 30;
+      o.vy += this._gy * grav * 30;
+      o.life--;
+      if (o.life <= 0 || o.x < -50 || o.x > sw + 50 || o.y < -50 || o.y > sh + 50) {
+        particles.splice(j, 1);
+      }
+    }
+
+    // 动态发射：替换消亡的 + 逐步填满剩余空间
+    var died = before - particles.length;
+    var room = cfg.maxParticles - particles.length;
+    var toEmit = Math.min(died + Math.ceil(room * 0.1), 40);
+    for (var i = 0; i < toEmit; i++) {
       var stroke = this._strokes[Math.floor(Math.random() * this._strokes.length)];
       if (!stroke || stroke.points.length === 0) continue;
       var pt = stroke.points[Math.floor(Math.random() * stroke.points.length)];
@@ -110,23 +160,10 @@ Page({
       particles.push({
         x: pt.x, y: pt.y,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - cfg.spraySpeed * 0.3,
-        life: 25 + Math.random() * 55, max: 80,
+        life: cfg.particleLife * 0.3 + Math.random() * cfg.particleLife * 0.7, max: cfg.particleLife,
         c: pal[Math.floor(Math.random() * pal.length)],
         s: cfg.particleSize * 0.3 + Math.random() * cfg.particleSize * 0.4
       });
-    }
-
-    // 更新 + 淘汰
-    var grav = cfg.gravity / 100;
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var o = particles[j];
-      o.x += o.vx; o.y += o.vy;
-      o.vx += this._gx * grav * 30;
-      o.vy += this._gy * grav * 30;
-      o.life--;
-      if (o.life <= 0 || o.x < -50 || o.x > sw + 50 || o.y < -50 || o.y > sh + 50) {
-        particles.splice(j, 1);
-      }
     }
   },
 
@@ -177,8 +214,8 @@ Page({
     var last = pts[pts.length - 1];
     var dx = t.x - last.x, dy = t.y - last.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 4) {
-      var n = Math.floor(dist / 4);
+    if (dist > 1) {
+      var n = Math.floor(dist / 1);
       for (var i = 1; i <= n; i++) {
         pts.push({ x: last.x + dx * i / n, y: last.y + dy * i / n });
       }
@@ -194,10 +231,32 @@ Page({
   closeSettings: function () { this.setData({ showSettings: false }); },
 
   onSize:     function (e) { this.setData({ 'cfg.particleSize': e.detail }); },
-  onRate:     function (e) { this.setData({ 'cfg.emitRate': e.detail }); },
   onSpeed:    function (e) { this.setData({ 'cfg.spraySpeed': e.detail }); },
   onGravity:  function (e) { this.setData({ 'cfg.gravity': e.detail }); },
   onFade:     function (e) { this.setData({ 'cfg.trailFade': e.detail }); },
+  onLife:     function (e) { this.setData({ 'cfg.particleLife': e.detail }); },
+
+  onMaxParticles: function (e) {
+    var val = e.currentTarget.dataset.val;
+    var self = this;
+    if (val === 8000) {
+      wx.showModal({
+        title: '性能警告',
+        content: '性能差的手机可能导致闪退，确认使用最高数值？',
+        confirmText: '确定',
+        cancelText: '取消',
+        success: function (r) {
+          if (r.confirm) {
+            self.setData({ 'cfg.maxParticles': 8000 });
+          } else {
+            self.setData({ 'cfg.maxParticles': 400 });
+          }
+        }
+      });
+    } else {
+      this.setData({ 'cfg.maxParticles': val });
+    }
+  },
 
   onPalette: function () {
     var i = (this.data.cfg.paletteIdx + 1) % PALETTES.length;

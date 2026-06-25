@@ -17,11 +17,6 @@
         <view class="custom-button" slot="button">{{cfg.particleSize}}</view>
       </van-slider>
     </SetItemWrapper>
-    <SetItemWrapper label="喷射数量" fieldClass="slider_wrapper">
-      <van-slider min="2" max="15" step="1" value="{{cfg.emitRate}}" use-button-slot bind:change="onRate">
-        <view class="custom-button" slot="button">{{cfg.emitRate}}</view>
-      </van-slider>
-    </SetItemWrapper>
     <SetItemWrapper label="喷射速度" fieldClass="slider_wrapper">
       <van-slider min="1" max="8" step="1" value="{{cfg.spraySpeed}}" use-button-slot bind:change="onSpeed">
         <view class="custom-button" slot="button">{{cfg.spraySpeed}}</view>
@@ -36,6 +31,20 @@
       <van-slider min="1" max="10" step="1" value="{{cfg.trailFade}}" use-button-slot bind:change="onFade">
         <view class="custom-button" slot="button">{{cfg.trailFade}}</view>
       </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="粒子生命" fieldClass="slider_wrapper">
+      <van-slider min="15" max="120" step="5" value="{{cfg.particleLife}}" use-button-slot bind:change="onLife">
+        <view class="custom-button" slot="button">{{cfg.particleLife}}</view>
+      </van-slider>
+    </SetItemWrapper>
+    <SetItemWrapper label="粒子个数" fieldClass="preset_wrapper">
+      <view class="preset-row">
+        <view class="preset-btn {{cfg.maxParticles === 1000 ? 'preset-btn--active' : ''}}" catch:tap="onMaxParticles" data-val="{{1000}}">1000</view>
+        <view class="preset-btn {{cfg.maxParticles === 2000 ? 'preset-btn--active' : ''}}" catch:tap="onMaxParticles" data-val="{{2000}}">2000</view>
+        <view class="preset-btn {{cfg.maxParticles === 3000 ? 'preset-btn--active' : ''}}" catch:tap="onMaxParticles" data-val="{{3000}}">3000</view>
+        <view class="preset-btn {{cfg.maxParticles === 4000 ? 'preset-btn--active' : ''}}" catch:tap="onMaxParticles" data-val="{{4000}}">4000</view>
+        <view class="preset-btn {{cfg.maxParticles === 8000 ? 'preset-btn--active' : ''}} preset-btn--warn" catch:tap="onMaxParticles" data-val="{{8000}}">8000</view>
+      </view>
     </SetItemWrapper>
   </SettingsPanel>
 </view>

@@ -58,6 +58,7 @@ Page({
 
   // 提示定时器
   _hintTimer: null,
+  _initTimer: null,
 
   // ========== 生命周期 ==========
 
@@ -68,6 +69,8 @@ Page({
         this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
       }
     } catch (e) { /* ignore */ }
+    this._initInterstitialAd();
+    this._initRewardedVideoAd();
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -84,7 +87,9 @@ Page({
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
@@ -92,12 +97,87 @@ Page({
     this._pixelRatio = sysInfo.pixelRatio || 2;
     var size = this._calcCanvasSize();
     this.setData({ canvasWidth: size.w, canvasHeight: size.h });
-    setTimeout(this._initPreviewCanvas.bind(this), 200);
+    var self = this;
+    this.setData({ canvasWidth: size.w, canvasHeight: size.h });
+    this._initTimer = setTimeout(function () {
+      self._initTimer = null;
+      self._initPreviewCanvas();
+    }, 200);
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
     if (this._hintTimer) clearTimeout(this._hintTimer);
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-8a02756aec63f656'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[切图插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[切图插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
+  },
+
+  _initRewardedVideoAd: function () {
+    if (wx.createRewardedVideoAd) {
+      this._rewardedVideoAd = wx.createRewardedVideoAd({
+        adUnitId: 'adunit-9e611dc5e9ea6a6b'
+      });
+      this._rewardedVideoAd.onLoad(() => {
+        console.log('[切图激励广告] 加载成功');
+      });
+      this._rewardedVideoAd.onError((err) => {
+        console.error('[切图激励广告] 加载失败', err);
+        this._rewardedVideoAd.load().catch(() => {});
+      });
+      this._rewardedVideoAd.onClose((res) => {
+        if (res && res.isEnded) {
+          console.log('[切图激励广告] 看完，执行保存');
+          var cb = this.__rewardedCallback;
+          this.__rewardedCallback = null;
+          if (cb) cb();
+        } else {
+          console.log('[切图激励广告] 未看完');
+          this.__rewardedCallback = null;
+          wx.showToast({ title: '看完广告才能保存哦', icon: 'none' });
+        }
+      });
+      this._rewardedVideoAd.load();
+    }
+  },
+
+  _showRewardedVideo: function (callback) {
+    if (!this._rewardedVideoAd) {
+      callback();
+      return;
+    }
+    var self = this;
+    self.__rewardedCallback = callback;
+    self._rewardedVideoAd.show().then(() => {
+      console.log('[切图激励广告] 展示中...');
+    }).catch((err) => {
+      console.error('[切图激励广告] 展示失败', err);
+      self.__rewardedCallback = null;
+      callback();
+    });
   },
 
   // ========== Canvas 初始化 ==========
@@ -453,40 +533,51 @@ Page({
       wx.showToast({ title: '请先选择图片', icon: 'none' });
       return;
     }
+    var self = this;
+    this._showRewardedVideo(function () {
+      self._doExport();
+    });
+  },
+
+  _doExport: function () {
     var rows = this.data.config.gridRows || 3;
     var cols = this.data.config.gridCols || 3;
     var self = this;
-    this.setData({ isExporting: true, exportProgress: 0, exportTotal: rows * cols });
 
-    var sizes = this._calcExportSize();
-    var exportCell = sizes.cell;
-    var exportW = exportCell * sizes.cols;
-    var exportH = exportCell * sizes.rows;
-    var lineScale = exportCell / (this.data.canvasWidth / sizes.cols);
-    var t = this._transform;
-    var eT = { x: t.x, y: t.y, scale: t.scale * lineScale, rotation: t.rotation };
+    var app = getApp();
+    app.checkPhotoAlbumAuth(function () {
+      self.setData({ isExporting: true, exportProgress: 0, exportTotal: rows * cols });
 
-    // 在大画布上加载图片 → 渲染完整场景 → 逐格用 drawImage 拷贝
-    var bigCanvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH });
-    var img = bigCanvas.createImage();
-    img.src = this._imagePath;
-    img.onload = function () {
-      var origImage = self._image;
-      var origW = self._imgW, origH = self._imgH;
-      self._image = img;
-      self._imgW = img.width;
-      self._imgH = img.height;
-      var bigCtx = bigCanvas.getContext('2d');
-      self._drawScene(bigCtx, exportW, exportH, eT, lineScale, true);
-      self._image = origImage;
-      self._imgW = origW;
-      self._imgH = origH;
-      self._exportCellsFromOffscreen(bigCanvas, exportCell, rows, cols);
-    };
-    img.onerror = function () {
-      self.setData({ isExporting: false });
-      wx.showToast({ title: '图片加载失败，请重试', icon: 'none' });
-    };
+      var sizes = self._calcExportSize();
+      var exportCell = sizes.cell;
+      var exportW = exportCell * sizes.cols;
+      var exportH = exportCell * sizes.rows;
+      var lineScale = exportCell / (self.data.canvasWidth / sizes.cols);
+      var t = self._transform;
+      var eT = { x: t.x, y: t.y, scale: t.scale * lineScale, rotation: t.rotation };
+
+      // 在大画布上加载图片 → 渲染完整场景 → 逐格用 drawImage 拷贝
+      var bigCanvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH });
+      var img = bigCanvas.createImage();
+      img.src = self._imagePath;
+      img.onload = function () {
+        var origImage = self._image;
+        var origW = self._imgW, origH = self._imgH;
+        self._image = img;
+        self._imgW = img.width;
+        self._imgH = img.height;
+        var bigCtx = bigCanvas.getContext('2d');
+        self._drawScene(bigCtx, exportW, exportH, eT, lineScale, true);
+        self._image = origImage;
+        self._imgW = origW;
+        self._imgH = origH;
+        self._exportCellsFromOffscreen(bigCanvas, exportCell, rows, cols);
+      };
+      img.onerror = function () {
+        self.setData({ isExporting: false });
+        wx.showToast({ title: '图片加载失败，请重试', icon: 'none' });
+      };
+    });
   },
 
   _exportCellsFromOffscreen: function (bigCanvas, cellSize, rows, cols) {
@@ -517,17 +608,7 @@ Page({
               wx.saveImageToPhotosAlbum({
                 filePath: tempPath,
                 success: resolve,
-                fail: function (err) {
-                  if (err && err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
-                    wx.showModal({
-                      title: '需要授权',
-                      content: '请允许保存图片到相册',
-                      confirmText: '去设置',
-                      success: function (r) { if (r.confirm) wx.openSetting(); }
-                    });
-                  }
-                  reject(err);
-                }
+                fail: reject
               });
             });
 

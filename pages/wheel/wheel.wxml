@@ -2,8 +2,8 @@
   <back-btn />
 
   <!-- ===== Canvas 渲染区 ===== -->
-  <view class="canvas-wrap" bind:tap="onCanvasTap">
-    <canvas type="2d" id="wheelCanvas" />
+  <view class="canvas-wrap">
+    <canvas type="2d" id="wheelCanvas" bind:tap="onCanvasTap" bindlongpress="onCanvasLongPress" />
   </view>
 
   <!-- ===== 结果展示条 ===== -->
@@ -27,7 +27,8 @@
   <!-- ===== 底部操作 ===== -->
   <view class="action-row">
     <view class="bar-btn bar-btn--outline" catch:tap="onOpenScenes">快捷场景</view>
-    <view class="bar-btn bar-btn--primary" catch:tap="onCanvasTap">转动转盘</view>
+    <view class="bar-btn bar-btn--outline" catch:tap="onSaveScene">保存场景</view>
+    <view class="bar-btn bar-btn--primary" catch:tap="onSpinTap">转动转盘</view>
   </view>
 
   <!-- ===== 快捷场景 ActionSheet ===== -->
@@ -37,6 +38,16 @@
     actions="{{sceneActions}}"
     bind:close="onSceneSheetClose"
     bind:select="onSceneSheetSelect"
+    cancel-text="取消"
+  />
+
+  <!-- ===== 删除自定义场景 ActionSheet ===== -->
+  <van-action-sheet
+    show="{{showDeleteSheet}}"
+    title="删除自定义场景"
+    actions="{{deleteActions}}"
+    bind:close="onDeleteSheetClose"
+    bind:select="onDeleteSheetSelect"
     cancel-text="取消"
   />
 

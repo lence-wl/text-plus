@@ -35,6 +35,7 @@ Page({
   // 双击检测
   _lastTapTime: 0,
   _tapTimer: null,
+  _initTimer: null,
 
   onLoad: function () {
     try {
@@ -43,20 +44,56 @@ Page({
         this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
       }
     } catch (e) { /* ignore */ }
+    this._initInterstitialAd();
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
     var self = this;
-    setTimeout(function () { self._measureAndStart(); }, 500);
+    this._initTimer = setTimeout(function () {
+      self._initTimer = null;
+      self._measureAndStart();
+    }, 500);
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
+    if (this._tapTimer) {
+      clearTimeout(this._tapTimer);
+      this._tapTimer = null;
+    }
     this._stopScroll();
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-cfc3c31d23b35363'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[多行滚动插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[多行滚动插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
   },
 
   // ========== 滚动核心：rAF + 直接 transform ==========

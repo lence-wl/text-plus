@@ -8,7 +8,7 @@ Page({
           {
             name: '单行滚动',
             desc: '7种特效 · 竖排展示',
-            page: '/pages/douyin/douyin',
+            page: '/pages/single-text/single-text',
             icon: '一'
           },
           {
@@ -84,10 +84,10 @@ Page({
             icon: '丝'
           },
           {
-            name: '粒子喷泉',
-            desc: '画圈成门 · 火花迸射',
+            name: '手绘烟花',
+            desc: '之间划过 · 火花迸射',
             page: '/pages/fluid/fluid',
-            icon: '粒'
+            icon: '彩'
           }
         ]
       }

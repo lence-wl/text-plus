@@ -265,6 +265,7 @@ Page({
   _sw: 0, _sh: 0,
   _cx: 0, _cy: 0,
   _animationId: null,
+  _initTimer: null,
   _curve: [],
   _sparkles: [],
   _touchActive: false,
@@ -283,21 +284,98 @@ Page({
     this._noiseOffset = Math.random() * 10000;
     this._colorInterp = hclInterpolate(PALETTE[0].color, PALETTE[0].highlight);
     this._initDrawInstructions();
+    this._initInterstitialAd();
+    this._initRewardedVideoAd();
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
     var self = this;
-    setTimeout(function () { self._initCanvas(); }, 200);
+    this._initTimer = setTimeout(function () {
+      self._initTimer = null;
+      self._initCanvas();
+    }, 200);
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
     if (this._animationId && this._canvas) {
       this._canvas.cancelAnimationFrame(this._animationId);
     }
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-f749bc6a9b577d1e'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[流光绘插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[流光绘插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
+  },
+
+  _initRewardedVideoAd: function () {
+    if (wx.createRewardedVideoAd) {
+      this._rewardedVideoAd = wx.createRewardedVideoAd({
+        adUnitId: 'adunit-dbcd70f4fe0e0a57'
+      });
+      this._rewardedVideoAd.onLoad(() => {
+        console.log('[流光绘激励广告] 加载成功');
+      });
+      this._rewardedVideoAd.onError((err) => {
+        console.error('[流光绘激励广告] 加载失败', err);
+        this._rewardedVideoAd.load().catch(() => {});
+      });
+      this._rewardedVideoAd.onClose((res) => {
+        if (res && res.isEnded) {
+          console.log('[流光绘激励广告] 看完，执行保存');
+          var cb = this.__rewardedCallback;
+          this.__rewardedCallback = null;
+          if (cb) cb();
+        } else {
+          console.log('[流光绘激励广告] 未看完');
+          this.__rewardedCallback = null;
+          wx.showToast({ title: '看完广告才能保存哦', icon: 'none' });
+        }
+      });
+      this._rewardedVideoAd.load();
+    }
+  },
+
+  _showRewardedVideo: function (callback) {
+    if (!this._rewardedVideoAd) {
+      callback();
+      return;
+    }
+    var self = this;
+    self.__rewardedCallback = callback;
+    self._rewardedVideoAd.show().then(() => {
+      console.log('[流光绘激励广告] 展示中...');
+    }).catch((err) => {
+      console.error('[流光绘激励广告] 展示失败', err);
+      self.__rewardedCallback = null;
+      callback();
+    });
   },
 
   // ===== Canvas 初始化 =====
@@ -770,6 +848,13 @@ Page({
   onSave: function () {
     if (this.data.isExporting) return;
     var self = this;
+    this._showRewardedVideo(function () {
+      self._doSave();
+    });
+  },
+
+  _doSave: function () {
+    var self = this;
     this.setData({ isExporting: true });
 
     try {
@@ -789,25 +874,19 @@ Page({
       var tempPath = wx.env.USER_DATA_PATH + '/silk_' + Date.now() + '.png';
       wx.getFileSystemManager().writeFileSync(tempPath, base64, 'base64');
 
-      wx.saveImageToPhotosAlbum({
-        filePath: tempPath,
-        success: function () {
-          self.setData({ isExporting: false });
-          wx.showToast({ title: '已保存到相册', icon: 'success' });
-        },
-        fail: function (err) {
-          self.setData({ isExporting: false });
-          if (err && err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
-            wx.showModal({
-              title: '需要授权',
-              content: '请允许保存图片到相册',
-              confirmText: '去设置',
-              success: function (r) { if (r.confirm) wx.openSetting(); }
-            });
-          } else {
+      var app = getApp();
+      app.checkPhotoAlbumAuth(function () {
+        wx.saveImageToPhotosAlbum({
+          filePath: tempPath,
+          success: function () {
+            self.setData({ isExporting: false });
+            wx.showToast({ title: '已保存到相册', icon: 'success' });
+          },
+          fail: function (err) {
+            self.setData({ isExporting: false });
             wx.showToast({ title: '保存失败，请重试', icon: 'none' });
           }
-        }
+        });
       });
     } catch (e) {
       self.setData({ isExporting: false });

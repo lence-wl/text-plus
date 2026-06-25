@@ -113,6 +113,7 @@ Page({
   _bgImage: null,         // canvas Image 对象（图片背景用）
   _lastTapTime: 0,
   _tapTimer: null,
+  _initTimer: null,
 
   // ========== 生命周期 ==========
 
@@ -137,19 +138,23 @@ Page({
     }, function () {
       this._syncPickerFromTarget(cd.targetDate);
     });
+    this._initInterstitialAd();
   },
 
   onReady: function () {
     var self = this;
     wx.nextTick(function () {
-      setTimeout(function () {
+      self._initTimer = setTimeout(function () {
+        self._initTimer = null;
         self._initCanvas();
       }, 200);
     });
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
     if (this._ctx && !this._animationId) {
       this._startLoop();
     }
@@ -160,6 +165,14 @@ Page({
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
+    if (this._tapTimer) {
+      clearTimeout(this._tapTimer);
+      this._tapTimer = null;
+    }
     this._stopLoop();
     if (this._bgImage) {
       this._bgImage.onload = null;
@@ -167,6 +180,28 @@ Page({
       this._bgImage = null;
     }
     try { wx.setStorageSync(STORAGE_KEY, this.data.countdowns); } catch (e) { /* ignore */ }
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-d33d47dd88ebafab'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[倒计时插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[倒计时插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
   },
 
   // ========== 分享 ==========
@@ -930,25 +965,19 @@ Page({
     var fs = wx.getFileSystemManager();
     fs.writeFileSync(tempPath, base64, 'base64');
 
-    wx.saveImageToPhotosAlbum({
-      filePath: tempPath,
-      success: function () {
-        self.setData({ isExporting: false });
-        wx.showToast({ title: '已保存到相册', icon: 'success' });
-      },
-      fail: function (err) {
-        self.setData({ isExporting: false });
-        if (err && err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
-          wx.showModal({
-            title: '需要授权',
-            content: '请允许保存图片到相册',
-            confirmText: '去设置',
-            success: function (r) { if (r.confirm) wx.openSetting(); }
-          });
-        } else {
+    var app = getApp();
+    app.checkPhotoAlbumAuth(function () {
+      wx.saveImageToPhotosAlbum({
+        filePath: tempPath,
+        success: function () {
+          self.setData({ isExporting: false });
+          wx.showToast({ title: '已保存到相册', icon: 'success' });
+        },
+        fail: function (err) {
+          self.setData({ isExporting: false });
           wx.showToast({ title: '导出失败，请重试', icon: 'none' });
         }
-      }
+      });
     });
   },
 

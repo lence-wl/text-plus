@@ -44,6 +44,7 @@ Page({
   // 双击检测
   _lastTapTime: 0,
   _tapTimer: null,
+  _initTimer: null,
 
   // ========== 生命周期 ==========
 
@@ -56,6 +57,8 @@ Page({
     } catch (e) {
       // ignore
     }
+    this._initInterstitialAd();
+    this._initRewardedVideoAd();
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -72,7 +75,9 @@ Page({
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
@@ -80,11 +85,92 @@ Page({
     this._pixelRatio = sysInfo.pixelRatio || 2;
     var size = this._calcCanvasSize();
     this.setData({ canvasWidth: size.w, canvasHeight: size.h });
-    setTimeout(() => { this._initPreviewCanvas(); }, 200);
+    var self = this;
+    this._initTimer = setTimeout(() => {
+      self._initTimer = null;
+      self._initPreviewCanvas();
+    }, 200);
   },
 
   onUnload: function () {
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
+    if (this._tapTimer) {
+      clearTimeout(this._tapTimer);
+      this._tapTimer = null;
+    }
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-e27403557732ca1a'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[切字插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[切字插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
+  },
+
+  _initRewardedVideoAd: function () {
+    if (wx.createRewardedVideoAd) {
+      this._rewardedVideoAd = wx.createRewardedVideoAd({
+        adUnitId: 'adunit-a4dd005b78ec003c'
+      });
+      this._rewardedVideoAd.onLoad(() => {
+        console.log('[切字激励广告] 加载成功');
+      });
+      this._rewardedVideoAd.onError((err) => {
+        console.error('[切字激励广告] 加载失败', err);
+        this._rewardedVideoAd.load().catch(() => {});
+      });
+      this._rewardedVideoAd.onClose((res) => {
+        if (res && res.isEnded) {
+          // 看完广告，执行保存
+          console.log('[切字激励广告] 看完，执行保存');
+          var cb = this.__rewardedCallback;
+          this.__rewardedCallback = null;
+          if (cb) cb();
+        } else {
+          // 没看完就关闭
+          console.log('[切字激励广告] 未看完');
+          this.__rewardedCallback = null;
+          wx.showToast({ title: '看完广告才能保存哦', icon: 'none' });
+        }
+      });
+      this._rewardedVideoAd.load();
+    }
+  },
+
+  _showRewardedVideo: function (callback) {
+    if (!this._rewardedVideoAd) {
+      callback();
+      return;
+    }
+    var self = this;
+    self.__rewardedCallback = callback;
+    self._rewardedVideoAd.show().then(() => {
+      console.log('[切字激励广告] 展示中...');
+    }).catch((err) => {
+      console.error('[切字激励广告] 展示失败', err);
+      self.__rewardedCallback = null;
+      // 广告展示失败，直接保存
+      callback();
+    });
   },
 
   // ========== 导航 ==========
@@ -344,21 +430,32 @@ Page({
   onExport: function () {
     if (this.data.isExporting) return;
     var self = this;
+    this._showRewardedVideo(function () {
+      self._doExport();
+    });
+  },
+
+  _doExport: function () {
+    var self = this;
     var rows = this.data.config.gridRows || 3;
     var cols = this.data.config.gridCols || 3;
     var total = rows * cols;
-    this.setData({ isExporting: true, exportProgress: 0, exportTotal: total });
 
-    var cellSize = Math.floor(MAX_TOTAL_SIZE / Math.max(rows, cols));
-    var exportW = cellSize * cols;
-    var exportH = cellSize * rows;
-    var lineScale = exportW / this.data.canvasWidth;
+    var app = getApp();
+    app.checkPhotoAlbumAuth(function () {
+      self.setData({ isExporting: true, exportProgress: 0, exportTotal: total });
 
-    var offCanvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH });
-    var ctx = offCanvas.getContext('2d');
-    this._drawOnCtx(ctx, exportW, exportH, lineScale, true);
+      var cellSize = Math.floor(MAX_TOTAL_SIZE / Math.max(rows, cols));
+      var exportW = cellSize * cols;
+      var exportH = cellSize * rows;
+      var lineScale = exportW / self.data.canvasWidth;
 
-    this._exportCellsFromOffscreen(offCanvas, cellSize, rows, cols);
+      var offCanvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH });
+      var ctx = offCanvas.getContext('2d');
+      self._drawOnCtx(ctx, exportW, exportH, lineScale, true);
+
+      self._exportCellsFromOffscreen(offCanvas, cellSize, rows, cols);
+    });
   },
 
   _exportCellsFromOffscreen: async function (bigCanvas, cellSize, rows, cols) {
@@ -386,17 +483,7 @@ Page({
             wx.saveImageToPhotosAlbum({
               filePath: tempPath,
               success: resolve,
-              fail: function (err) {
-                if (err && err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
-                  wx.showModal({
-                    title: '需要授权',
-                    content: '请允许保存图片到相册',
-                    confirmText: '去设置',
-                    success: function (r) { if (r.confirm) wx.openSetting(); }
-                  });
-                }
-                reject(err);
-              }
+              fail: reject
             });
           });
 

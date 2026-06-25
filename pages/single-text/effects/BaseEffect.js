@@ -134,7 +134,7 @@ function createBaseEffect(impl) {
 
     /**
      * 统一设置所有 layer 的 x, y
-     * 在动画循环中由 douyin.js 调用
+     * 在动画循环中由 single-text.js 调用
      */
     syncPositions: function (baseX, centerY) {
       this.layers.forEach(function (layer) {

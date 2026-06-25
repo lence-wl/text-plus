@@ -32,3 +32,13 @@ page { background: #000; }
 .hint text { color: rgba(255,255,255,0.25); font-size: 32rpx; }
 .custom-button { width: 60rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; background: #667eea; border-radius: 8rpx; color: #fff; font-size: 24rpx; }
 .settings-mask { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 9; }
+.preset_wrapper { height: auto !important; }
+.preset-row { display: flex; gap: 12rpx; flex-wrap: wrap; }
+.preset-btn {
+  padding: 8rpx 20rpx; border-radius: 8rpx;
+  font-size: 22rpx; color: #666;
+  background: #f0f0f0;
+  border: 2rpx solid transparent;
+}
+.preset-btn--active { color: #fff; background: #667eea; border-color: #667eea; }
+.preset-btn--warn.preset-btn--active { background: #e74c3c; border-color: #e74c3c; }

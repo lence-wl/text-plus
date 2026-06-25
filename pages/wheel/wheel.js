@@ -4,6 +4,7 @@
  */
 
 var STORAGE_KEY = 'random_picker_data';
+var CUSTOM_SCENES_KEY = 'wheel_custom_scenes';
 
 // ========== 快捷场景 ==========
 
@@ -39,7 +40,9 @@ Page({
     resultVisible: false,
     animating: false,
     showSceneSheet: false,
-    sceneActions: []
+    sceneActions: [],
+    showDeleteSheet: false,
+    deleteActions: [],
   },
 
   // ========== 实例变量 ==========
@@ -52,6 +55,9 @@ Page({
   _wheelAngle: 0,
   _wheelAnimId: null,
 
+  _initTimer: null,
+  _rerollTimer: null,
+
   // ========== 生命周期 ==========
 
   onLoad: function () {
@@ -61,24 +67,83 @@ Page({
         this.setData({ options: saved.options });
       }
     } catch (e) { /* ignore */ }
+    try {
+      var cs = wx.getStorageSync(CUSTOM_SCENES_KEY);
+      this._customScenes = (cs && Array.isArray(cs)) ? cs : [];
+    } catch (e) { this._customScenes = []; }
     this._updateFiltered();
     this._buildSceneActions();
+    this._initInterstitialAd();
+    this._showEasterEggTip();
+  },
+
+  _showEasterEggTip: function () {
+    try {
+      if (wx.getStorageSync('wheel_easter_egg_v2')) return;
+    } catch (e) { /* ignore */ }
+    var self = this;
+    setTimeout(function () {
+      wx.showModal({
+        title: '🤫 嘘……告诉你个秘密',
+        content: '长按转盘上的某个扇区，命运就会偏向那边哦～',
+        showCancel: false,
+        confirmText: '我记住了',
+        success: function () {
+          try { wx.setStorageSync('wheel_easter_egg_v2', true); } catch (e) { /* ignore */ }
+        }
+      });
+    }, 800);
   },
 
   onShow: function () {
-    getApp().showInterstitial();
+    if (this._interstitialAd) {
+      this._interstitialAd.show().catch(() => {});
+    }
   },
 
   onReady: function () {
     var self = this;
-    setTimeout(function () { self._initCanvas(); }, 300);
+    this._initTimer = setTimeout(function () {
+      self._initTimer = null;
+      self._initCanvas();
+    }, 300);
   },
 
   onUnload: function () {
     if (this._wheelAnimId && this._canvas) {
       this._canvas.cancelAnimationFrame(this._wheelAnimId);
     }
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
+    if (this._rerollTimer) {
+      clearTimeout(this._rerollTimer);
+      this._rerollTimer = null;
+    }
     this._save();
+  },
+
+  // ========== 广告 ==========
+
+  _initInterstitialAd: function () {
+    if (wx.createInterstitialAd) {
+      this._interstitialAd = wx.createInterstitialAd({
+        adUnitId: 'adunit-d40330e56e7deefc'
+      });
+      this._interstitialAd.onLoad(() => {
+        console.log('[转盘插屏广告] 加载成功');
+      });
+      this._interstitialAd.onError((err) => {
+        console.error('[转盘插屏广告] 加载失败', err);
+      });
+      this._interstitialAd.onClose(() => {
+        if (this._interstitialAd) {
+          this._interstitialAd.load().catch(() => {});
+        }
+      });
+      this._interstitialAd.load();
+    }
   },
 
   // ========== Canvas ==========
@@ -102,6 +167,11 @@ Page({
       ctx.scale(dpr, dpr);
       self._canvas = canvas;
       self._ctx = ctx;
+      // 获取 canvas 在页面中的位置（供长按坐标转换用）
+      var rectQuery = wx.createSelectorQuery().in(self);
+      rectQuery.select('#wheelCanvas').boundingClientRect(function (rect) {
+        self._canvasRect = rect;
+      }).exec();
       self._drawWheel();
     });
   },
@@ -200,6 +270,52 @@ Page({
   // ========== 旋转 ==========
 
   onCanvasTap: function () {
+    if (this._skipTap) { this._skipTap = false; return; }
+    this._doSpin();
+  },
+
+  onSpinTap: function () {
+    this._doSpin();
+  },
+
+  onCanvasLongPress: function (e) {
+    if (this.data.animating) return;
+    var opts = this.data.filteredOptions;
+    if (opts.length < 2) return;
+
+    this._skipTap = true; // 阻止后续 tap 事件
+
+    // 计算触摸点相对于 canvas 中心的角度
+    var rect = this._canvasRect;
+    if (!rect) return;
+    var tx = e.detail.x - rect.left;
+    var ty = e.detail.y - rect.top;
+    var cx = this._canvasW / 2;
+    var cy = this._canvasH / 2;
+    var dx = tx - cx;
+    var dy = ty - cy;
+
+    // 检查是否在转盘范围内
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var r = Math.min(cx, cy) - 8;
+    if (dist > r + 6 || dist < r * 0.18) return; // 不在扇区区域
+
+    // 计算触摸角度 (0 指向右，顺时针)
+    var touchAngle = Math.atan2(dy, dx);
+    if (touchAngle < 0) touchAngle += Math.PI * 2;
+
+    // 映射到扇区：扇区 i 的范围是 wheelAngle + i*slice 到 wheelAngle + (i+1)*slice
+    var n = opts.length;
+    var sliceAngle = (Math.PI * 2) / n;
+    var relAngle = (touchAngle - this._wheelAngle % (Math.PI * 2) + Math.PI * 4) % (Math.PI * 2);
+    var idx = Math.floor(relAngle / sliceAngle);
+    if (idx >= n) idx = 0;
+
+    wx.vibrateShort({ type: 'heavy' });
+    this._doSpin(idx);
+  },
+
+  _doSpin: function (forceIdx) {
     if (this.data.animating) return;
     var opts = this.data.filteredOptions;
     if (opts.length < 2) {
@@ -217,9 +333,12 @@ Page({
 
     var n = opts.length;
     var sliceAngle = 360 / n;
-    var targetIdx = randomIndex(opts);
+    var targetIdx = (forceIdx != null) ? forceIdx : randomIndex(opts);
     var targetSliceMid = targetIdx * sliceAngle + sliceAngle / 2;
-    var totalSpin = 360 * 6 + (360 - targetSliceMid);
+    var startDeg = ((this._wheelAngle * 180 / Math.PI) % 360 + 360) % 360;
+    var stopAngle = 270;
+    var relSpin = (stopAngle - targetSliceMid - startDeg + 360) % 360;
+    var totalSpin = 360 * 6 + relSpin;
     var startAngle = this._wheelAngle * 180 / Math.PI;
     var duration = 2500;
     var startTime = Date.now();
@@ -227,7 +346,7 @@ Page({
     function spinLoop() {
       var elapsed = Date.now() - startTime;
       var t = Math.min(elapsed / duration, 1);
-      var eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      var eased = 1 - Math.pow(1 - t, 3);
       self._wheelAngle = (startAngle + totalSpin * eased) * Math.PI / 180;
       self._drawWheel();
 
@@ -257,17 +376,38 @@ Page({
   onReroll: function () {
     this.setData({ resultVisible: false });
     var self = this;
-    setTimeout(function () { self.onCanvasTap(); }, 300);
+    this._rerollTimer = setTimeout(function () {
+      self._rerollTimer = null;
+      self.onCanvasTap();
+    }, 300);
   },
 
   // ========== 快捷场景 ==========
 
   _buildSceneActions: function () {
-    var actions = SCENES.map(function (s) { return { name: s.name }; });
+    var actions = [];
+    // 内置场景
+    for (var i = 0; i < SCENES.length; i++) {
+      actions.push({ name: SCENES[i].name, type: 'builtin', idx: i });
+    }
+    // 自定义场景
+    var cs = this._customScenes || [];
+    for (var j = 0; j < cs.length; j++) {
+      actions.push({ name: '📌 ' + cs[j].name, type: 'custom', idx: j });
+    }
+    // 保存当前
+    if (this.data.filteredOptions.length >= 2) {
+      actions.push({ name: '💾 保存当前为场景', type: 'save' });
+    }
+    // 删除自定义
+    if (cs.length > 0) {
+      actions.push({ name: '🗑️ 删除自定义场景', type: 'delete_menu' });
+    }
     this.setData({ sceneActions: actions });
   },
 
   onOpenScenes: function () {
+    this._buildSceneActions(); // 每次打开刷新列表
     this.setData({ showSceneSheet: true });
   },
 
@@ -278,20 +418,107 @@ Page({
   onSceneSheetSelect: function (e) {
     var item = e.detail;
     if (!item) return;
-    var scene = SCENES.find(function (s) { return s.name === item.name; });
-    if (!scene) return;
     this.setData({ showSceneSheet: false });
-    if (scene.name === '🧹 清空选项') {
-      this.setData({ options: [], result: '', resultVisible: false }, function () {
+
+    if (item.type === 'builtin') {
+      var scene = SCENES[item.idx];
+      if (!scene) return;
+      if (scene.name === '🧹 清空选项') {
+        this.setData({ options: [], result: '', resultVisible: false }, function () {
+          this._updateFiltered(); this._drawWheel(); this._save();
+        });
+        wx.showToast({ title: '已清空', icon: 'none' });
+        return;
+      }
+      this.setData({ options: scene.options.slice(), result: '', resultVisible: false }, function () {
         this._updateFiltered(); this._drawWheel(); this._save();
+        wx.showToast({ title: '已切换至' + scene.name.replace(/[^一-龥]/g, ''), icon: 'none' });
       });
-      wx.showToast({ title: '已清空', icon: 'none' });
+    } else if (item.type === 'custom') {
+      var cs = this._customScenes[item.idx];
+      if (!cs) return;
+      this.setData({ options: cs.options.slice(), result: '', resultVisible: false }, function () {
+        this._updateFiltered(); this._drawWheel(); this._save();
+        wx.showToast({ title: '已切换至 ' + cs.name, icon: 'none' });
+      });
+    } else if (item.type === 'save') {
+      this._onSaveScene();
+    } else if (item.type === 'delete_menu') {
+      this._openDeleteSheet();
+    }
+  },
+
+  // ========== 保存 / 删除自定义场景 ==========
+
+  onSaveScene: function () {
+    this._onSaveScene();
+  },
+
+  _onSaveScene: function () {
+    var self = this;
+    var opts = this.data.filteredOptions;
+    if (opts.length < 2) {
+      wx.showToast({ title: '至少需要两个选项', icon: 'none' });
       return;
     }
-    this.setData({ options: scene.options.slice(), result: '', resultVisible: false }, function () {
-      this._updateFiltered(); this._drawWheel(); this._save();
-      wx.showToast({ title: '已切换至' + scene.name.replace(/[^一-龥]/g, ''), icon: 'none' });
+    if (this._customScenes.length >= 10) {
+      wx.showToast({ title: '自定义场景已达上限(10个)，请先删除旧的', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: '保存为场景',
+      editable: true,
+      placeholderText: '输入场景名称',
+      success: function (res) {
+        if (res.confirm && res.content && res.content.trim()) {
+          self._customScenes.push({
+            name: res.content.trim(),
+            options: opts.slice()
+          });
+          self._persistCustomScenes();
+          wx.showToast({ title: '已保存', icon: 'success' });
+        }
+      }
     });
+  },
+
+  _openDeleteSheet: function () {
+    var cs = this._customScenes;
+    var actions = cs.map(function (s, i) {
+      return { name: '📌 ' + s.name, idx: i };
+    });
+    this.setData({ deleteActions: actions, showDeleteSheet: true });
+  },
+
+  onDeleteSheetClose: function () {
+    this.setData({ showDeleteSheet: false });
+  },
+
+  onDeleteSheetSelect: function (e) {
+    var item = e.detail;
+    if (!item) return;
+    var self = this;
+    var cs = this._customScenes[item.idx];
+    wx.showModal({
+      title: '删除场景',
+      content: '确定删除「' + cs.name + '」？',
+      confirmText: '删除',
+      confirmColor: '#ff4757',
+      success: function (r) {
+        if (r.confirm) {
+          self._customScenes.splice(item.idx, 1);
+          self._persistCustomScenes();
+          self.setData({ showDeleteSheet: false });
+          wx.showToast({ title: '已删除', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  _persistCustomScenes: function () {
+    try {
+      wx.setStorageSync(CUSTOM_SCENES_KEY, this._customScenes);
+    } catch (e) { /* ignore */ }
   },
 
   // ========== 选项管理 ==========

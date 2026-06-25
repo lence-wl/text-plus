@@ -1,11 +1,11 @@
 /**
  * 配置持久化存储模块
- * 抖音文字动效页配置本地缓存
+ * 单行文字动效页配置本地缓存
  */
 
-const STORAGE_KEY = 'douyin_text_config';
+const STORAGE_KEY = 'single_text_config';
 
-// 默认配置（与 douyin.js 中的默认配置保持一致）
+// 默认配置（与 single-text.js 中的默认配置保持一致）
 const defaultConfig = {
   // 公共配置
   currentEffect: 'applyRainbowEffect',
