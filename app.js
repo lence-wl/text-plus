@@ -1,7 +1,5 @@
 // app.js
 App({
-  // 插屏广告必须在页面内创建，不能在全局创建（微信限制，错误码 2005）
-  // 各页面在自己的 onLoad 中通过 wx.createInterstitialAd 创建广告实例
   globalData: {
     userInfo: null
   },

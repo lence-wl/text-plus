@@ -3,6 +3,7 @@
  */
 
 var STORAGE_KEY = 'scroll_multi_config';
+const adManager = require("../../utils/adManager.js");
 
 var DEFAULT_CONFIG = {
   bgColor: '#1a1a2e',
@@ -21,7 +22,7 @@ Page({
     showSettings: false,
     activeTab: 'content',
     scrollY: 9999,  // 初始在屏幕外，避免闪烁
-    rawText: '开始懂了-孙燕姿\n\n我竟然没有调头\n最残忍那一刻\n静静看你走\n一点都不像我\n原来人会变得温柔\n是透彻的懂了\n爱情是流动的 不由人的\n何必激动着要理由\n相信你只是怕伤害我\n不是骗我\n很爱过谁会舍得\n把我的梦摇醒了\n宣布幸福不会来了\n用心酸微笑去原谅了\n也翻越了\n有昨天还是好的\n但明天是自己的\n开始懂了\n快乐是选择',
+    rawText: '开始懂了-孙燕姿\n\n我竟然没有调头\n最残忍那一刻\n静静看你走\n一点都不像我\n原来人会变得温柔\n是透彻的懂了\n爱情是流动的 不由人的\n何必激动着要理由\n相信你只是怕伤害我\n不是骗我\n很爱过谁会舍得\n把我的梦摇醒了\n宣布幸福不会来了\n用心酸微笑去原谅了\n也翻越了\n有昨天还是好的\n但明天是自己的\n开始懂了\n快乐是选择\n\n我竟然没有调头\n最残忍那一刻\n静静看你走\n一点都不像我\n原来人会变得温柔\n是透彻的懂了\n爱情是流动的 不由人的\n何必激动着要理由\n相信你只是怕伤害我\n不是骗我\n很爱过谁会舍得\n把我的梦摇醒了\n宣布幸福不会来了\n用心酸微笑去原谅了\n也翻越了\n有昨天还是好的\n但明天是自己的\n开始懂了\n快乐是选择',
     config: { ...DEFAULT_CONFIG }
   },
 
@@ -37,20 +38,30 @@ Page({
   _tapTimer: null,
   _initTimer: null,
 
-  onLoad: function () {
+  onLoad: function (options) {
+    // 解析分享配置（完整 JSON，优先于本地存储）
+    if (options && options.cfg) {
+      try {
+        var shared = JSON.parse(decodeURIComponent(options.cfg));
+        if (shared.config) {
+          this.setData({ config: Object.assign({}, DEFAULT_CONFIG, shared.config) });
+        }
+        if (shared.rawText) {
+          this.setData({ rawText: shared.rawText });
+        }
+        return; // 分享配置优先，跳过本地存储
+      } catch (e) {
+        console.error('[scroll-multi] Failed to parse shared config:', e);
+      }
+    }
+
+    // 回退到本地存储
     try {
       var saved = wx.getStorageSync(STORAGE_KEY);
       if (saved && typeof saved === 'object') {
-        this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
+        this.setData({ config: Object.assign({}, DEFAULT_CONFIG, saved) });
       }
     } catch (e) { /* ignore */ }
-    this._initInterstitialAd();
-  },
-
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
   },
 
   onReady: function () {
@@ -59,6 +70,13 @@ Page({
       self._initTimer = null;
       self._measureAndStart();
     }, 500);
+
+    // 初始化插屏广告（5秒后展示）
+    adManager.initInterstitial('adunit-cfc3c31d23b35363');
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-cfc3c31d23b35363');
+    }, 5000);
   },
 
   onUnload: function () {
@@ -66,34 +84,16 @@ Page({
       clearTimeout(this._initTimer);
       this._initTimer = null;
     }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
+    }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
       this._tapTimer = null;
     }
     this._stopScroll();
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
-  },
-
-  // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-cfc3c31d23b35363'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[多行滚动插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[多行滚动插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
   },
 
   // ========== 滚动核心：rAF + 直接 transform ==========
@@ -175,6 +175,34 @@ Page({
 
   onBack: function () { wx.navigateBack(); },
 
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    var shareData = {
+      config: this.data.config,
+      rawText: this.data.rawText
+    };
+    var cfg = encodeURIComponent(JSON.stringify(shareData));
+    var title = (this.data.rawText || '').substring(0, 20);
+    return {
+      title: '多行滚动' + (title ? ' - ' + title : ''),
+      path: '/pages/scroll-multi/multi?cfg=' + cfg
+    };
+  },
+
+  onShareTimeline: function () {
+    var shareData = {
+      config: this.data.config,
+      rawText: this.data.rawText
+    };
+    var cfg = encodeURIComponent(JSON.stringify(shareData));
+    var title = (this.data.rawText || '').substring(0, 20);
+    return {
+      title: '多行滚动' + (title ? ' - ' + title : ''),
+      query: 'cfg=' + cfg
+    };
+  },
+
   // ========== 双击打开/关闭设置面板 ==========
 
   touchEvent: function (e) {
@@ -212,6 +240,8 @@ Page({
   closeSettings: function () {
     this.setData({ showSettings: false });
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+    // 关闭设置面板时30%概率展示插屏广告
+    adManager.showInterstitial('adunit-cfc3c31d23b35363');
   },
 
   onTabChange: function (e) {

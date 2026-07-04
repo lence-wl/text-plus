@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY = 'countdown_app_data';
+const adManager = require("../../utils/adManager.js");
 
 // ========== 工具函数 ==========
 
@@ -117,7 +118,28 @@ Page({
 
   // ========== 生命周期 ==========
 
-  onLoad: function () {
+  onLoad: function (options) {
+    // 解析分享配置（完整 JSON 格式）
+    if (options && options.cfg) {
+      try {
+        var shared = JSON.parse(decodeURIComponent(options.cfg));
+        if (shared) {
+          this.setData({
+            countdowns: [shared],
+            currentIndex: 0,
+            currentCountdown: shared
+          }, function () {
+            this._syncPickerFromTarget(shared.targetDate);
+          });
+          // 初始化插屏广告
+          adManager.initInterstitial('adunit-d33d47dd88ebafab');
+          return;
+        }
+      } catch (e) {
+        console.error('[countdown] Failed to parse shared config:', e);
+      }
+    }
+
     var saved = null;
     try {
       saved = wx.getStorageSync(STORAGE_KEY);
@@ -138,7 +160,9 @@ Page({
     }, function () {
       this._syncPickerFromTarget(cd.targetDate);
     });
-    this._initInterstitialAd();
+
+    // 初始化插屏广告
+    adManager.initInterstitial('adunit-d33d47dd88ebafab');
   },
 
   onReady: function () {
@@ -149,12 +173,15 @@ Page({
         self._initCanvas();
       }, 200);
     });
+
+    // 5秒后展示插屏广告（最小间隔90秒）
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-d33d47dd88ebafab');
+    }, 5000);
   },
 
   onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
     if (this._ctx && !this._animationId) {
       this._startLoop();
     }
@@ -169,6 +196,10 @@ Page({
       clearTimeout(this._initTimer);
       this._initTimer = null;
     }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
+    }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
       this._tapTimer = null;
@@ -182,43 +213,41 @@ Page({
     try { wx.setStorageSync(STORAGE_KEY, this.data.countdowns); } catch (e) { /* ignore */ }
   },
 
-  // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-d33d47dd88ebafab'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[倒计时插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[倒计时插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
-  },
-
   // ========== 分享 ==========
 
   onShareAppMessage: function () {
     var cd = this.data.currentCountdown;
+    if (!cd) {
+      return { title: '倒计时 — 重要日子不错过', path: '/pages/countdown/countdown' };
+    }
+    var cfg = encodeURIComponent(JSON.stringify(cd));
+    var title = cd.title || '';
+    var parts = this.data.displayParts || [];
+    var daysStr = '';
+    if (parts.length > 0 && !this.data.isExpired) {
+      daysStr = ' | 距离还有 ' + parts[0].value + ' 天';
+    }
     return {
-      title: '倒计时 - ' + (cd ? cd.title : ''),
-      path: '/pages/countdown/countdown'
+      title: '「' + title + '」倒计时' + daysStr,
+      path: '/pages/countdown/countdown?cfg=' + cfg
     };
   },
 
   onShareTimeline: function () {
     var cd = this.data.currentCountdown;
+    if (!cd) {
+      return { title: '倒计时 — 重要日子不错过', query: '' };
+    }
+    var cfg = encodeURIComponent(JSON.stringify(cd));
+    var title = cd.title || '';
+    var parts = this.data.displayParts || [];
+    var daysStr = '';
+    if (parts.length > 0 && !this.data.isExpired) {
+      daysStr = ' | 距离还有 ' + parts[0].value + ' 天';
+    }
     return {
-      title: '倒计时 - ' + (cd ? cd.title : ''),
-      query: ''
+      title: '「' + title + '」倒计时' + daysStr,
+      query: 'cfg=' + cfg
     };
   },
 
@@ -660,6 +689,8 @@ Page({
       this._updateDisplay();
     });
     try { wx.setStorageSync(STORAGE_KEY, this.data.countdowns); } catch (e) { /* ignore */ }
+    // 添加新倒计时后30%概率展示插屏广告（最小间隔90秒）
+    adManager.showInterstitial('adunit-d33d47dd88ebafab');
   },
 
   /** 新建模式：点「取消」丢弃 */

@@ -10,6 +10,8 @@
  *   6. 多步物理/帧，线条更密集
  */
 
+const adManager = require("../../utils/adManager.js");
+
 // ===================================================================
 // 1. UTILITY: Perlin 3D Noise (port from weavesilk noise.js)
 // ===================================================================
@@ -258,6 +260,12 @@ Page({
     isExporting: false
   },
 
+  // ===== 安全 setData 包装 =====
+  _safeSetData: function (data, callback) {
+    if (this._destroyed) return;
+    this.setData(data, callback);
+  },
+
   // ===== 实例变量 =====
   _canvas: null,
   _ctx: null,
@@ -266,6 +274,7 @@ Page({
   _cx: 0, _cy: 0,
   _animationId: null,
   _initTimer: null,
+  _adTimer: null,
   _curve: [],
   _sparkles: [],
   _touchActive: false,
@@ -275,24 +284,62 @@ Page({
   _noiseOffset: 0,
   _drawScale: 1,
   _offsetX: 0, _offsetY: 0,
+  _destroyed: false,  // 页面销毁标志
   _colorInterp: null,
   _drawInstructions: [],
 
   // ===== 生命周期 =====
 
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    var sym = this.data.symmetry;
+    var features = [];
+    if (this.data.mirror) features.push('镜像');
+    if (this.data.spiral) features.push('螺旋');
+    var desc = sym + '轴对称';
+    if (features.length) desc += '·' + features.join('·');
+    return {
+      title: '流光绘 — 指尖划过，丝光流影（' + desc + '）',
+      path: '/pages/silk/silk'
+    };
+  },
+
+  onShareTimeline: function () {
+    var sym = this.data.symmetry;
+    var features = [];
+    if (this.data.mirror) features.push('镜像');
+    if (this.data.spiral) features.push('螺旋');
+    var desc = sym + '轴对称';
+    if (features.length) desc += '·' + features.join('·');
+    return {
+      title: '流光绘 — 指尖划过，丝光流影（' + desc + '）',
+      query: ''
+    };
+  },
+
   onLoad: function () {
+    this._destroyed = false;  // 初始化销毁标志
+
+    // 重写 setData，增加销毁检查
+    var originalSetData = this.setData.bind(this);
+    this.setData = function(data, callback) {
+      if (this._destroyed) {
+        console.warn('[流光绘] 页面已销毁，阻止 setData');
+        return;
+      }
+      originalSetData(data, callback);
+    }.bind(this);
+
     this._noiseOffset = Math.random() * 10000;
     this._colorInterp = hclInterpolate(PALETTE[0].color, PALETTE[0].highlight);
     this._initDrawInstructions();
-    this._initInterstitialAd();
     this._initRewardedVideoAd();
+    // 初始化插屏广告
+    adManager.initInterstitial('adunit-f749bc6a9b577d1e');
   },
 
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
-  },
+  onShow: function () {},
 
   onReady: function () {
     var self = this;
@@ -300,39 +347,49 @@ Page({
       self._initTimer = null;
       self._initCanvas();
     }, 200);
+
+    // 5秒后展示插屏广告（最小间隔120秒）
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-f749bc6a9b577d1e');
+    }, 5000);
   },
 
   onUnload: function () {
+    // 设置销毁标志，阻止后续的 setData 调用
+    this._destroyed = true;
+
+    // 清理初始化定时器
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
     }
+
+    // 清理广告定时器
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
+    }
+
+    // 停止加速器监听（关键！）
+    wx.stopAccelerometer();
+
+    // 取消动画帧
     if (this._animationId && this._canvas) {
       this._canvas.cancelAnimationFrame(this._animationId);
+      this._animationId = null;
     }
+
+    // 清理画布引用
+    this._canvas = null;
+    this._ctx = null;
+
+    // 清理数据
+    this._curve = [];
+    this._sparkles = [];
   },
 
   // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-f749bc6a9b577d1e'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[流光绘插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[流光绘插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
-  },
 
   _initRewardedVideoAd: function () {
     if (wx.createRewardedVideoAd) {
@@ -417,7 +474,16 @@ Page({
   _startLoop: function () {
     var self = this;
     if (self._animationId) return;
+    if (self._destroyed) return;  // 已销毁则不启动
     function tick() {
+      // 检查页面是否已销毁
+      if (self._destroyed) {
+        if (self._animationId && self._canvas) {
+          self._canvas.cancelAnimationFrame(self._animationId);
+        }
+        self._animationId = null;
+        return;
+      }
       self._animationId = self._canvas.requestAnimationFrame(tick);
       self._frame();
     }
@@ -841,6 +907,8 @@ Page({
     }
     this._curve = [];
     this._sparkles = [];
+    // 清除画布时30%概率展示插屏广告（最小间隔120秒）
+    adManager.showInterstitial('adunit-f749bc6a9b577d1e');
   },
 
   // ===== 导出 =====

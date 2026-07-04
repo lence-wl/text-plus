@@ -1,0 +1,22 @@
+{
+  "pages": [
+    "pages/camera/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "水印相机",
+    "navigationBarBackgroundColor": "#000000",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#000000"
+  },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍摄水印照片"
+    },
+    "scope.userLocation": {
+      "desc": "用于生成地址水印"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存水印照片到相册"
+    }
+  }
+}

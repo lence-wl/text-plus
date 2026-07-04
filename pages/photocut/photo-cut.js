@@ -5,6 +5,7 @@
  */
 
 const STORAGE_KEY = 'photocut_config';
+const adManager = require("../../utils/adManager.js");
 
 const DEFAULT_CONFIG = {
   gridColor: 'rgba(0,0,0,0.6)',
@@ -62,6 +63,22 @@ Page({
 
   // ========== 生命周期 ==========
 
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    return {
+      title: '九宫格切图 — 一图九格，朋友圈专属排版',
+      path: '/pages/photocut/photo-cut'
+    };
+  },
+
+  onShareTimeline: function () {
+    return {
+      title: '九宫格切图 — 一图九格，朋友圈专属排版',
+      query: ''
+    };
+  },
+
   onLoad: function () {
     try {
       var saved = wx.getStorageSync(STORAGE_KEY);
@@ -69,8 +86,9 @@ Page({
         this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
       }
     } catch (e) { /* ignore */ }
-    this._initInterstitialAd();
     this._initRewardedVideoAd();
+    // 初始化插屏广告（补充展示）
+    adManager.initInterstitial('adunit-8a02756aec63f656');
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -86,11 +104,7 @@ Page({
     return { w: Math.round(cw), h: Math.round(ch) };
   },
 
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
-  },
+  onShow: function () {},
 
   onReady: function () {
     var sysInfo = wx.getSystemInfoSync();
@@ -103,6 +117,12 @@ Page({
       self._initTimer = null;
       self._initPreviewCanvas();
     }, 200);
+
+    // 5秒后展示插屏广告（补充激励视频之外的广告位，最小间隔90秒）
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-8a02756aec63f656');
+    }, 5000);
   },
 
   onUnload: function () {
@@ -110,31 +130,15 @@ Page({
       clearTimeout(this._initTimer);
       this._initTimer = null;
     }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
+    }
     if (this._hintTimer) clearTimeout(this._hintTimer);
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
   },
 
   // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-8a02756aec63f656'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[切图插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[切图插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
-  },
 
   _initRewardedVideoAd: function () {
     if (wx.createRewardedVideoAd) {

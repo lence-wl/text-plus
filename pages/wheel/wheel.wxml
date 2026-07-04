@@ -20,8 +20,18 @@
       <view class="option-tag__del" data-index="{{index}}" catch:tap="onDeleteOption">✕</view>
     </view>
     <view class="option-tag option-tag--add" catch:tap="onAddOption">
-      <text class="option-tag__text">+ 添加</text>
+      <text class="option-tag__text">+ 添加</text>>
     </view>
+  </view>
+
+  <!-- ===== 卡片广告 ===== -->
+  <view class="ad-container" wx:if="{{showAd}}">
+    <ad-custom 
+      unit-id="adunit-f94bef5366b76cd3" 
+      bindload="adLoad" 
+      binderror="adError" 
+      bindclose="adClose"
+    ></ad-custom>
   </view>
 
   <!-- ===== 底部操作 ===== -->

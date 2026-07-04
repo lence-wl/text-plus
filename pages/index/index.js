@@ -1,5 +1,9 @@
 Page({
   data: {
+    showGuide: false,
+    guideTop: 0,
+    guideLeft: 0,
+    arrowOffset: 0,
     categories: [
       {
         title: '文字滚动',
@@ -23,54 +27,30 @@ Page({
         title: '九宫格',
         color: '#f093fb',
         items: [
-          // {
-          //   name: '文字壁纸',
-          //   desc: '名言排版 · 保存分享',
-          //   page: '/pages/wallpaper/wallpaper',
-          //   icon: '壁'
-          // },
           {
             name: '九宫格切字',
             desc: '一字九图 · 朋友圈',
             page: '/pages/gridcut/gridcut',
             icon: '字'
           },
-					{
+          {
             name: '九宫格切图',
             desc: '一图九图 · 朋友圈',
             page: '/pages/photocut/photo-cut',
             icon: '图'
-          },
-          // {
-          //   name: '聊天记录',
-          //   desc: '模拟截图 · 搞笑传播',
-          //   page: '/pages/chatmock/chatmock',
-          //   icon: '聊'
-          // }
+          }
         ]
       },
       {
         title: '效率工具',
         color: '#4facfe',
         items: [
-          // {
-          //   name: '倒计时',
-          //   desc: '纪念日 · 重要时刻不错过',
-          //   page: '/pages/countdown/countdown',
-          //   icon: '倒'
-          // },
           {
             name: '随机转盘',
             desc: '终结你的选择困难症',
             page: '/pages/wheel/wheel',
             icon: '转'
-          },
-          // {
-          //   name: '电子时钟',
-          //   desc: '4种风格 · 全屏',
-          //   page: '/pages/clock/clock',
-          //   icon: '钟'
-          // }
+          }
         ]
       },
       {
@@ -99,5 +79,79 @@ Page({
     if (page) {
       wx.navigateTo({ url: page });
     }
+  },
+
+  onReady: function () {
+    this._checkShowGuide();
+  },
+
+  // ========== 引导添加到我的小程序 ==========
+
+  _checkShowGuide: function () {
+    var self = this;
+
+    setTimeout(function () {
+      try {
+        var rect = wx.getMenuButtonBoundingClientRect();
+        var sysInfo = wx.getSystemInfoSync();
+        // "···" 在胶囊按钮左侧，取胶囊左1/3处为箭头对准点
+        var dotCenterX = rect.left + rect.width * 0.28;
+        // tooltip 整体宽度估算 ~360rpx = 180px，箭头初始位于左边缘
+        var tipWidth = 180;
+        var tipLeft = dotCenterX - 12;
+        // 边界保护
+        if (tipLeft + tipWidth > sysInfo.windowWidth - 12) {
+          tipLeft = sysInfo.windowWidth - tipWidth - 12;
+        }
+        if (tipLeft < 12) tipLeft = 12;
+        // 箭头偏移量：从 tooltip 左边缘到箭头尖端的距离
+        var offset = dotCenterX - tipLeft;
+        self.setData({
+          showGuide: true,
+          guideTop: rect.bottom + 8,
+          guideLeft: tipLeft,
+          arrowOffset: offset
+        });
+      } catch (e) {
+        self.setData({ showGuide: true, guideTop: 90, guideLeft: 120, arrowOffset: 20 });
+      }
+    }, 800);
+  },
+
+  onDismissGuide: function () {
+    this.setData({ showGuide: false });
+  },
+
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    return {
+      title: '文字特效工具箱 — 滚动弹幕·九宫格切图·随机转盘·流光绘·手绘烟花',
+      path: '/pages/index/index'
+    };
+  },
+
+  onShareTimeline: function () {
+    return {
+      title: '文字特效工具箱 — 滚动弹幕·九宫格切图·随机转盘·流光绘·手绘烟花',
+      query: ''
+    };
+  },
+
+  // ========== 原生模板广告事件监听 ==========
+
+  /** 广告加载成功 */
+  onAdLoad: function () {
+    console.log('[首页广告] 原生模板广告加载成功');
+  },
+
+  /** 广告加载失败 */
+  onAdError: function (err) {
+    console.error('[首页广告] 原生模板广告加载失败', err);
+  },
+
+  /** 广告关闭（用户点击关闭按钮） */
+  onAdClose: function () {
+    console.log('[首页广告] 原生模板广告已关闭');
   }
 });

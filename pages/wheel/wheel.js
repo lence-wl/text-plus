@@ -5,6 +5,7 @@
 
 var STORAGE_KEY = 'random_picker_data';
 var CUSTOM_SCENES_KEY = 'wheel_custom_scenes';
+const adManager = require("../../utils/adManager.js");
 
 // ========== 快捷场景 ==========
 
@@ -43,6 +44,7 @@ Page({
     sceneActions: [],
     showDeleteSheet: false,
     deleteActions: [],
+    showAd: true  // 控制广告显示
   },
 
   // ========== 实例变量 ==========
@@ -73,7 +75,6 @@ Page({
     } catch (e) { this._customScenes = []; }
     this._updateFiltered();
     this._buildSceneActions();
-    this._initInterstitialAd();
     this._showEasterEggTip();
   },
 
@@ -95,14 +96,19 @@ Page({
     }, 800);
   },
 
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
-  },
+  onShow: function () {},
 
   onReady: function () {
     var self = this;
+    // 初始化插屏广告
+    adManager.initInterstitial('adunit-d40330e56e7deefc');
+    
+    // 进入页面5秒后展示插屏广告
+    this._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-d40330e56e7deefc');
+    }, 5000);
+    
     this._initTimer = setTimeout(function () {
       self._initTimer = null;
       self._initCanvas();
@@ -122,28 +128,6 @@ Page({
       this._rerollTimer = null;
     }
     this._save();
-  },
-
-  // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-d40330e56e7deefc'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[转盘插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[转盘插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
   },
 
   // ========== Canvas ==========
@@ -357,6 +341,8 @@ Page({
         self.setData({ animating: false });
         wx.vibrateShort({ type: 'medium' });
         self._showResult(opts[targetIdx]);
+        // 旋转结束后50%概率展示插屏广告
+        adManager.showInterstitial('adunit-d40330e56e7deefc');
       }
     }
 
@@ -562,5 +548,60 @@ Page({
     try {
       wx.setStorageSync(STORAGE_KEY, { options: this.data.options });
     } catch (e) { /* ignore */ }
+  },
+
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    var opts = this.data.filteredOptions;
+    var desc = '';
+    if (opts.length >= 2) {
+      desc = '「' + opts.slice(0, 4).join('·') + (opts.length > 4 ? '…' : '') + '」';
+      return {
+        title: '随机转盘' + (desc ? ' — ' + desc : ' — 终结你的选择困难症'),
+        path: '/pages/wheel/wheel'
+      };
+    }
+    return {
+      title: '随机转盘 — 终结你的选择困难症',
+      path: '/pages/wheel/wheel'
+    };
+  },
+
+  onShareTimeline: function () {
+    var opts = this.data.filteredOptions;
+    var desc = '';
+    if (opts.length >= 2) {
+      desc = '「' + opts.slice(0, 4).join('·') + (opts.length > 4 ? '…' : '') + '」';
+      return {
+        title: '随机转盘' + (desc ? ' — ' + desc : ' — 终结你的选择困难症'),
+        query: ''
+      };
+    }
+    return {
+      title: '随机转盘 — 终结你的选择困难症',
+      query: ''
+    };
+  },
+
+  // ========== 原生模板广告事件监听 ==========
+
+  /** 广告加载成功 */
+  adLoad: function () {
+    console.log('[转盘广告] 原生模板广告加载成功');
+  },
+
+  /** 广告加载失败 */
+  adError: function (err) {
+    console.error('[转盘广告] 原生模板广告加载失败', err);
+    // 加载失败时隐藏广告容器，避免空白占位
+    this.setData({ showAd: false });
+  },
+
+  /** 广告关闭（用户点击关闭按钮） */
+  adClose: function () {
+    console.log('[转盘广告] 原生模板广告已关闭');
+    // 用户关闭广告后隐藏容器
+    this.setData({ showAd: false });
   }
 });

@@ -3,6 +3,7 @@
  */
 
 var STORAGE_KEY = 'fluid_config';
+const adManager = require("../../utils/adManager.js");
 
 var PALETTES = [
   { name: '极光', colors: ['#00e5ff','#00b0ff','#7c4dff','#e040fb'] },
@@ -13,12 +14,12 @@ var PALETTES = [
 
 var DEFAULTS = {
   paletteIdx: 0,
-  particleSize: 3,
+  particleSize: 6,
   spraySpeed: 1,
   gravity: 10,
-  trailFade: 5,
-  particleLife: 50,
-  maxParticles: 1500,
+  trailFade: 10,
+  particleLife: 100,
+  maxParticles: 8000,
 };
 
 Page({
@@ -36,6 +37,24 @@ Page({
   _curStroke: null,    // 当前正在画的笔画
   _gx: 0, _gy: 0.03,
 
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    var pal = this.data.currentPalette;
+    return {
+      title: '手绘烟花 — 指尖划过，' + (pal ? pal.name : '五彩') + '火花迸射',
+      path: '/pages/fluid/fluid'
+    };
+  },
+
+  onShareTimeline: function () {
+    var pal = this.data.currentPalette;
+    return {
+      title: '手绘烟花 — 指尖划过，' + (pal ? pal.name : '五彩') + '火花迸射',
+      query: ''
+    };
+  },
+
   onLoad: function () {
     try {
       var s = wx.getStorageSync(STORAGE_KEY);
@@ -44,14 +63,11 @@ Page({
         this.setData({ cfg: c, currentPalette: PALETTES[c.paletteIdx || 0] });
       }
     } catch (e) {}
-    this._initInterstitialAd();
+    // 初始化插屏广告
+    adManager.initInterstitial('adunit-1e816ec0731138cf');
   },
 
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
-  },
+  onShow: function () {},
 
   onReady: function () {
     var self = this;
@@ -59,6 +75,12 @@ Page({
       self._initTimer = null;
       self._init();
     }, 200);
+
+    // 5秒后展示插屏广告（最小间隔120秒）
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-1e816ec0731138cf');
+    }, 5000);
   },
 
   onUnload: function () {
@@ -66,31 +88,13 @@ Page({
       clearTimeout(this._initTimer);
       this._initTimer = null;
     }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
+    }
     if (this._animId && this._canvas) this._canvas.cancelAnimationFrame(this._animId);
     wx.stopAccelerometer();
     try { wx.setStorageSync(STORAGE_KEY, this.data.cfg); } catch (e) {}
-  },
-
-  // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-1e816ec0731138cf'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[粒子喷泉插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[粒子喷泉插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
   },
 
   _init: function () {
@@ -237,19 +241,20 @@ Page({
   onLife:     function (e) { this.setData({ 'cfg.particleLife': e.detail }); },
 
   onMaxParticles: function (e) {
-    var val = e.currentTarget.dataset.val;
+    var val = e.detail;
     var self = this;
-    if (val === 8000) {
+    // 超过10000时弹性能警告，用户取消则回退
+    if (val > 10000 && this.data.cfg.maxParticles <= 10000) {
       wx.showModal({
         title: '性能警告',
-        content: '性能差的手机可能导致闪退，确认使用最高数值？',
+        content: '超过10000粒子可能导致低端手机卡顿或闪退，确定使用？',
         confirmText: '确定',
         cancelText: '取消',
         success: function (r) {
           if (r.confirm) {
-            self.setData({ 'cfg.maxParticles': 8000 });
+            self.setData({ 'cfg.maxParticles': val });
           } else {
-            self.setData({ 'cfg.maxParticles': 400 });
+            // 取消则保持原值
           }
         }
       });

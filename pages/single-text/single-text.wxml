@@ -6,185 +6,277 @@
 		<text class="fallback-text">{{ config.text }}</text>
 	</view>
 	<!-- Canvas 始终全屏，设置面板浮在其上方 -->
-	<canvas type="2d" id="myCanvas" class="canvas canvas--full" bindtouchstart="touchEvent" bindtouchmove="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent"></canvas>
+	<canvas type="2d" id="myCanvas" class="canvas canvas--full" 
+	bindtouchstart="touchEvent" bindtouchmove="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent"></canvas>
 
-	<SettingsPanel visible="{{showSettings}}" title="设置" value="{{config.fontSize}}" bindclose="closeSettings">
+	<!-- 遮罩 -->
+	<view class="mask" wx:if="{{showSettings}}" catchtap="closeSettings"></view>
 
-		<!-- ========== 公共设置 ========== -->
+	<!-- 设置面板 -->
+	<view class="settings-panel {{showSettings ? 'settings-panel--show' : ''}}">
+		<view class="settings-panel__hd">
+			<text class="settings-panel__title">设置</text>
+			<text class="settings-panel__close" bindtap="closeSettings">✕</text>
+		</view>
 
-		<!-- 文字内容 -->
-		<SetItemWrapper label="文字内容" fieldClass="input_wrapper">
-			<van-field value="{{ config.text }}" bind:blur="onTextBlur" placeholder="请输入文字内容" />
-		</SetItemWrapper>
+		<!-- 标签栏 -->
+		<view class="settings__tabs">
+			<view class="tab-item {{activeTab === 'content' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="content">内容</view>
+			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">样式</view>
+			<view class="tab-item {{activeTab === 'effect' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="effect">特效</view>
+			<view class="tab-item {{activeTab === 'scroll' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="scroll">滚动</view>
+		</view>
 
-		<!-- 字体大小 -->
-		<SetItemWrapper label="字体大小" fieldClass="slider_wrapper">
-			<van-slider min="60" max="300" step="1" value="{{ config.fontSize }}" use-button-slot bind:change="onFontSizeConfirm">
-				<view class="custom-button" slot="button">{{ config.fontSize }}</view>
-			</van-slider>
-		</SetItemWrapper>
+		<scroll-view class="settings-panel__bd" scroll-y>
 
-		<!-- 背景颜色 -->
-		<SetItemWrapper label="背景颜色" fieldClass="slider_wrapper">
-			<ColorPicker colorList="{{[config.bgColor]}}" bind:colorChange="handleBgColorChange" />
-		</SetItemWrapper>
+			<!-- ========== 内容 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'content'}}">
+				<view class="set-row set-row--input">
+					<van-field style="width:100%;" value="{{ config.text }}" 
+					type="textarea"
+					rows="3"
+					bind:blur="onTextBlur" placeholder="请输入文字内容" custom-style="background:#f5f5f5;border-radius:8rpx;height:100rpx;" />
+				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-3429c9c03c2605b4"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
 
-		<!-- 滚动速度 -->
-		<SetItemWrapper label="滚动速度" fieldClass="slider_wrapper">
-			<van-slider min="1" max="10" step="0.5" value="{{ config.scrollSpeed }}" use-button-slot bind:change="onScrollSpeedChange">
-				<view class="custom-button" slot="button">{{ config.scrollSpeed }}</view>
-			</van-slider>
-		</SetItemWrapper>
+			<!-- ========== 样式 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'style'}}">
+				<view class="set-row">
+					<text class="set-row__label">字体大小</text>
+					<van-slider min="60" max="300" step="1" value="{{ config.fontSize }}" use-button-slot bind:change="onFontSizeConfirm">
+						<view class="custom-btn" slot="button">{{ config.fontSize }}</view>
+					</van-slider>
+				</view>
+				<view class="set-row">
+					<text class="set-row__label">文字加粗</text>
+					<van-switch checked="{{ config.fontWeight === 'bold' }}" bind:change="onFontWeightChange" />
+				</view>
+				<view class="set-row">
+					<text class="set-row__label">背景颜色</text>
+					<view style="flex:1;"><ColorPicker colorList="{{[config.bgColor]}}" bind:colorChange="handleBgColorChange" /></view>
+				</view>
+			<view class="set-row">
+					<ad-custom
+						unit-id="adunit-876e2216578e8903"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
 
-		<!-- 特效选择 -->
-		<SetItemWrapper label="特效选择" fieldClass="input_wrapper">
-			<view class="effect-picker" hover-class="effect-picker--hover" catch:tap="onEffectPickerTap">{{ currentEffectName }}</view>
-		</SetItemWrapper>
+			<!-- ========== 特效 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'effect'}}">
+				<view class="set-row">
+					<text class="set-row__label">特效选择</text>
+					<view class="effect-picker" hover-class="effect-picker--hover" catch:tap="onEffectPickerTap">{{ currentEffectName }}</view>
+				</view>
 
-		<!-- 文字加粗 -->
-		<SetItemWrapper label="文字加粗" fieldClass="slider_wrapper">
-			<van-switch checked="{{ config.fontWeight === 'bold' }}" bind:change="onFontWeightChange" />
-		</SetItemWrapper>
+				<!-- 抖动模式 -->
+				<block wx:if="{{ config.effectMode === 'glitch' }}">
+					<view class="set-row">
+						<text class="set-row__label">字体颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.redColor, config.cyanColor]}}" bind:colorChange="handleGlitchColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">抖动频率</text>
+						<van-slider min="1" max="20" step="1" value="{{ config.glitchInterval }}" use-button-slot bind:change="onGlitchIntervalChange">
+							<view class="custom-btn" slot="button">{{ config.glitchInterval }}帧</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">抖动幅度</text>
+						<van-slider min="1" max="20" step="1" value="{{ config.glitchOffsetAmplitude }}" use-button-slot bind:change="onGlitchOffsetAmplitudeChange">
+							<view class="custom-btn" slot="button">{{ config.glitchOffsetAmplitude }}px</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">基础偏移</text>
+						<van-slider min="0" max="10" step="0.5" value="{{ config.glitchBaseOffset }}" use-button-slot bind:change="onGlitchBaseOffsetChange">
+							<view class="custom-btn" slot="button">{{ config.glitchBaseOffset }}px</view>
+						</van-slider>
+					</view>
+				</block>
 
-		<!-- ========== 抖动模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'glitch' }}">
-			<SetItemWrapper label="字体颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.redColor, config.cyanColor]}}" bind:colorChange="handleGlitchColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="抖动频率" fieldClass="slider_wrapper">
-				<van-slider min="1" max="20" step="1" value="{{ config.glitchInterval }}" use-button-slot bind:change="onGlitchIntervalChange">
-					<view class="custom-button" slot="button">{{ config.glitchInterval }}帧</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="抖动幅度" fieldClass="slider_wrapper">
-				<van-slider min="1" max="20" step="1" value="{{ config.glitchOffsetAmplitude }}" use-button-slot bind:change="onGlitchOffsetAmplitudeChange">
-					<view class="custom-button" slot="button">{{ config.glitchOffsetAmplitude }}px</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="基础偏移" fieldClass="slider_wrapper">
-				<van-slider min="0" max="10" step="0.5" value="{{ config.glitchBaseOffset }}" use-button-slot bind:change="onGlitchBaseOffsetChange">
-					<view class="custom-button" slot="button">{{ config.glitchBaseOffset }}px</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+				<!-- 发光模式 -->
+				<block wx:if="{{ config.effectMode === 'glow' }}">
+					<view class="set-row">
+						<text class="set-row__label">字体颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.glowColor]}}" bind:colorChange="handleGlowColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">发光强度</text>
+						<van-slider min="1" max="20" step="1" value="{{ config.glowOuterStrength }}" use-button-slot bind:change="onGlowStrengthChange">
+							<view class="custom-btn" slot="button">{{ config.glowOuterStrength }}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">发光距离</text>
+						<van-slider min="5" max="30" step="1" value="{{ config.glowDistance }}" use-button-slot bind:change="onGlowDistanceChange">
+							<view class="custom-btn" slot="button">{{ config.glowDistance }}px</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">呼吸速度</text>
+						<van-slider min="0.5" max="5" step="0.5" value="{{ config.glowBreathSpeed }}" use-button-slot bind:change="onGlowBreathSpeedChange">
+							<view class="custom-btn" slot="button">{{ config.glowBreathSpeed }}</view>
+						</van-slider>
+					</view>
+				</block>
 
-		<!-- ========== 发光模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'glow' }}">
-			<SetItemWrapper label="字体颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.glowColor]}}" bind:colorChange="handleGlowColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="发光强度" fieldClass="slider_wrapper">
-				<van-slider min="1" max="20" step="1" value="{{ config.glowOuterStrength }}" use-button-slot bind:change="onGlowStrengthChange">
-					<view class="custom-button" slot="button">{{ config.glowOuterStrength }}</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="发光距离" fieldClass="slider_wrapper">
-				<van-slider min="5" max="30" step="1" value="{{ config.glowDistance }}" use-button-slot bind:change="onGlowDistanceChange">
-					<view class="custom-button" slot="button">{{ config.glowDistance }}px</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="呼吸速度" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="5" step="0.5" value="{{ config.glowBreathSpeed }}" use-button-slot bind:change="onGlowBreathSpeedChange">
-					<view class="custom-button" slot="button">{{ config.glowBreathSpeed }}</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+				<!-- 霓虹灯模式 -->
+				<block wx:if="{{ config.effectMode === 'neon' }}">
+					<view class="set-row">
+						<text class="set-row__label">内核颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.neonCoreColor]}}" bind:colorChange="handleNeonCoreColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">中层颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.neonColor]}}" bind:colorChange="handleNeonColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">外层颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.neonGlowColor]}}" bind:colorChange="handleNeonGlowColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">发光强度</text>
+						<van-slider min="1" max="10" step="1" value="{{ config.neonStrength }}" use-button-slot bind:change="onNeonStrengthChange">
+							<view class="custom-btn" slot="button">{{ config.neonStrength }}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">闪烁速度</text>
+						<van-slider min="0.5" max="5" step="0.5" value="{{ config.neonFlickerSpeed }}" use-button-slot bind:change="onNeonFlickerSpeedChange">
+							<view class="custom-btn" slot="button">{{ config.neonFlickerSpeed }}</view>
+						</van-slider>
+					</view>
+				</block>
 
-		<!-- ========== 霓虹灯模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'neon' }}">
-			<SetItemWrapper label="字体颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.neonCoreColor]}}" bind:colorChange="handleNeonCoreColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="中层色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.neonColor]}}" bind:colorChange="handleNeonColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="外层发光色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.neonGlowColor]}}" bind:colorChange="handleNeonGlowColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="发光强度" fieldClass="slider_wrapper">
-				<van-slider min="1" max="10" step="1" value="{{ config.neonStrength }}" use-button-slot bind:change="onNeonStrengthChange">
-					<view class="custom-button" slot="button">{{ config.neonStrength }}</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="闪烁速度" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="5" step="0.5" value="{{ config.neonFlickerSpeed }}" use-button-slot bind:change="onNeonFlickerSpeedChange">
-					<view class="custom-button" slot="button">{{ config.neonFlickerSpeed }}</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+				<!-- 彩虹模式 -->
+				<block wx:if="{{ config.effectMode === 'rainbow' }}">
+					<view class="set-row">
+						<text class="set-row__label">彩虹颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{config.rainbowColors}}" bind:colorChange="handleRainbowColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">渐变方向</text>
+						<van-dropdown-menu direction="up" z-index="{{1000}}">
+							<van-dropdown-item value="{{ config.rainbowGradientType }}" options="{{ [{text: '垂直渐变', value: 0}, {text: '水平渐变', value: 1}] }}" bind:change="onRainbowGradientTypeChange" />
+						</van-dropdown-menu>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">阴影效果</text>
+						<van-switch checked="{{ config.rainbowDropShadow }}" bind:change="onRainbowDropShadowChange" />
+					</view>
+				</block>
 
-		<!-- ========== 彩虹模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'rainbow' }}">
-			<SetItemWrapper label="彩虹颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{config.rainbowColors}}" bind:colorChange="handleRainbowColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="渐变方向" fieldClass="input_wrapper">
-				<van-dropdown-menu direction="up" z-index="{{1000}}">
-					<van-dropdown-item value="{{ config.rainbowGradientType }}" options="{{ [{text: '垂直渐变', value: 0}, {text: '水平渐变', value: 1}] }}" bind:change="onRainbowGradientTypeChange" />
-				</van-dropdown-menu>
-			</SetItemWrapper>
-			<SetItemWrapper label="阴影效果" fieldClass="slider_wrapper">
-				<van-switch checked="{{ config.rainbowDropShadow }}" bind:change="onRainbowDropShadowChange" />
-			</SetItemWrapper>
-		</block>
+				<!-- 波浪模式 -->
+				<block wx:if="{{ config.effectMode === 'wave' }}">
+					<view class="set-row">
+						<text class="set-row__label">字体颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{[config.waveColor]}}" bind:colorChange="handleWaveColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">波浪幅度</text>
+						<van-slider min="5" max="50" step="1" value="{{ config.waveAmplitude }}" use-button-slot bind:change="onWaveAmplitudeChange">
+							<view class="custom-btn" slot="button">{{ config.waveAmplitude }}px</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">波浪频率</text>
+						<van-slider min="0.1" max="2" step="0.1" value="{{ config.waveFrequency }}" use-button-slot bind:change="onWaveFrequencyChange">
+							<view class="custom-btn" slot="button">{{ config.waveFrequency }}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">波浪速度</text>
+						<van-slider min="0.5" max="10" step="0.5" value="{{ config.waveSpeed }}" use-button-slot bind:change="onWaveSpeedChange">
+							<view class="custom-btn" slot="button">{{ config.waveSpeed }}</view>
+						</van-slider>
+					</view>
+				</block>
 
-		<!-- ========== 波浪模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'wave' }}">
-			<SetItemWrapper label="字体颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{[config.waveColor]}}" bind:colorChange="handleWaveColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="波浪幅度" fieldClass="slider_wrapper">
-				<van-slider min="5" max="50" step="1" value="{{ config.waveAmplitude }}" use-button-slot bind:change="onWaveAmplitudeChange">
-					<view class="custom-button" slot="button">{{ config.waveAmplitude }}px</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="波浪频率" fieldClass="slider_wrapper">
-				<van-slider min="0.1" max="2" step="0.1" value="{{ config.waveFrequency }}" use-button-slot bind:change="onWaveFrequencyChange">
-					<view class="custom-button" slot="button">{{ config.waveFrequency }}</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="波浪速度" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="10" step="0.5" value="{{ config.waveSpeed }}" use-button-slot bind:change="onWaveSpeedChange">
-					<view class="custom-button" slot="button">{{ config.waveSpeed }}</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+				<!-- 色彩循环模式 -->
+				<block wx:if="{{ config.effectMode === 'colorCycle' }}">
+					<view class="set-row">
+						<text class="set-row__label">循环颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{ config.colorCycleColors }}" bind:colorChange="handleColorCycleColorsChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">循环速度</text>
+						<van-slider min="0.5" max="10" step="0.5" value="{{ config.colorCycleSpeed }}" use-button-slot bind:change="onColorCycleSpeedChange">
+							<view class="custom-btn" slot="button">{{ config.colorCycleSpeed }}</view>
+						</van-slider>
+					</view>
+				</block>
 
-		<!-- ========== 色彩循环模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'colorCycle' }}">
-			<SetItemWrapper label="循环颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{ config.colorCycleColors }}" bind:colorChange="handleColorCycleColorsChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="循环速度" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="10" step="0.5" value="{{ config.colorCycleSpeed }}" use-button-slot bind:change="onColorCycleSpeedChange">
-					<view class="custom-button" slot="button">{{ config.colorCycleSpeed }}</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+				<!-- 缩放脉冲模式 -->
+				<block wx:if="{{ config.effectMode === 'scalePulse' }}">
+					<view class="set-row">
+						<text class="set-row__label">字体颜色</text>
+						<view style="flex:1;"><ColorPicker colorList="{{ [config.scalePulseColor] }}" bind:colorChange="handleScalePulseColorChange" /></view>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">最小缩放</text>
+						<van-slider min="0.5" max="1" step="0.1" value="{{ config.scalePulseMinScale }}" use-button-slot bind:change="onScalePulseMinScaleChange">
+							<view class="custom-btn" slot="button">{{ config.scalePulseMinScale }}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">最大缩放</text>
+						<van-slider min="1" max="2" step="0.1" value="{{ config.scalePulseMaxScale }}" use-button-slot bind:change="onScalePulseMaxScaleChange">
+							<view class="custom-btn" slot="button">{{ config.scalePulseMaxScale }}</view>
+						</van-slider>
+					</view>
+					<view class="set-row">
+						<text class="set-row__label">脉冲速度</text>
+						<van-slider min="0.5" max="10" step="0.5" value="{{ config.scalePulseSpeed }}" use-button-slot bind:change="onScalePulseSpeedChange">
+							<view class="custom-btn" slot="button">{{ config.scalePulseSpeed }}</view>
+						</van-slider>
+					</view>
+				</block>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-c8df033167be76e3"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
 
-		<!-- ========== 缩放脉冲模式专属设置 ========== -->
-		<block wx:if="{{ config.effectMode === 'scalePulse' }}">
-			<SetItemWrapper label="字体颜色" fieldClass="slider_wrapper">
-				<ColorPicker colorList="{{ [config.scalePulseColor] }}" bind:colorChange="handleScalePulseColorChange" />
-			</SetItemWrapper>
-			<SetItemWrapper label="最小缩放" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="1" step="0.1" value="{{ config.scalePulseMinScale }}" use-button-slot bind:change="onScalePulseMinScaleChange">
-					<view class="custom-button" slot="button">{{ config.scalePulseMinScale }}</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="最大缩放" fieldClass="slider_wrapper">
-				<van-slider min="1" max="2" step="0.1" value="{{ config.scalePulseMaxScale }}" use-button-slot bind:change="onScalePulseMaxScaleChange">
-					<view class="custom-button" slot="button">{{ config.scalePulseMaxScale }}</view>
-				</van-slider>
-			</SetItemWrapper>
-			<SetItemWrapper label="脉冲速度" fieldClass="slider_wrapper">
-				<van-slider min="0.5" max="10" step="0.5" value="{{ config.scalePulseSpeed }}" use-button-slot bind:change="onScalePulseSpeedChange">
-					<view class="custom-button" slot="button">{{ config.scalePulseSpeed }}</view>
-				</van-slider>
-			</SetItemWrapper>
-		</block>
+			<!-- ========== 滚动 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'scroll'}}">
+				<view class="set-row">
+					<text class="set-row__label">滚动速度</text>
+					<van-slider min="1" max="10" step="0.5" value="{{ config.scrollSpeed }}" use-button-slot bind:change="onScrollSpeedChange">
+						<view class="custom-btn" slot="button">{{ config.scrollSpeed }}</view>
+					</van-slider>
+				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-66b2f271d3be3299"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
 
-	</SettingsPanel>
+		</scroll-view>
+	</view>
 
 	<!-- 特效选择弹出层 -->
 	<view class="effect-sheet-mask" wx:if="{{showEffectSheet}}" catch:tap="onEffectSheetClose"></view>

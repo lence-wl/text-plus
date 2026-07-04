@@ -25,7 +25,8 @@
 		<view class="settings__tabs">
 			<view class="tab-item {{activeTab === 'content' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="content">内容</view>
 			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">字体</view>
-			<view class="tab-item {{activeTab === 'glow' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="glow">颜色</view>
+			<view class="tab-item {{activeTab === 'color' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="color">颜色</view>
+			<view class="tab-item {{activeTab === 'glow' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="glow">发光</view>
 			<view class="tab-item {{activeTab === 'screen' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="screen">滚动</view>
 		</view>
 
@@ -33,7 +34,16 @@
 		<scroll-view class="settings-panel__bd" scroll-y>
 
 			<view class="tab-pane" wx:if="{{activeTab === 'content'}}">
-				<textarea class="set-textarea" value="{{rawText}}" maxlength="1000" bindblur="onTextBlur" placeholder="输入文字，换行即分行..." auto-height />
+				<van-field type="textarea" value="{{rawText}}" placeholder="输入文字，换行即分行..." custom-style="background:#f5f5f5;border-radius:8rpx;min-height:100px;font-size:28rpx;" bind:blur="onTextBlur" />
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-09650eed41b2c79b"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
 			</view>
 
 			<view class="tab-pane" wx:if="{{activeTab === 'style'}}">
@@ -51,9 +61,18 @@
 						<view class="align-opt {{config.textAlign === 'center' ? 'align-opt--active' : ''}}" bindtap="onTextAlignChange" data-align="center">居中</view>
 					</view>
 				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-35f6fb51975ea0ea"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
 			</view>
 
-			<view class="tab-pane" wx:if="{{activeTab === 'glow'}}">
+			<view class="tab-pane" wx:if="{{activeTab === 'color'}}">
 				<view class="set-row">
 					<text class="set-row__label">字体颜色</text>
 					<view style="flex:1;"><ColorPicker colorList="{{[config.textColor]}}" bind:colorChange="handleTextColorChange" /></view>
@@ -62,6 +81,18 @@
 					<text class="set-row__label">背景颜色</text>
 					<view style="flex:1;"><ColorPicker colorList="{{[config.bgColor]}}" bind:colorChange="handleBgColorChange" /></view>
 				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-609e191ce97caaef"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
+
+			<view class="tab-pane" wx:if="{{activeTab === 'glow'}}">
 				<view class="set-row">
 					<text class="set-row__label">发光</text>
 					<van-switch checked="{{config.glowEnabled}}" bind:change="onGlowEnabledChange" />
@@ -78,6 +109,15 @@
 						<view style="flex:1;"><ColorPicker colorList="{{[config.glowColor]}}" bind:colorChange="handleGlowColorChange" /></view>
 					</view>
 				</block>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-82b9229cee5b393c"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
 			</view>
 
 			<view class="tab-pane" wx:if="{{activeTab === 'screen'}}">
@@ -93,6 +133,15 @@
 						<view class="align-opt {{config.screenDirection === 'portrait' ? 'align-opt--active' : ''}}" bindtap="onDirectionChange" data-direction="portrait">竖屏</view>
 						<view class="align-opt {{config.screenDirection === 'landscape' ? 'align-opt--active' : ''}}" bindtap="onDirectionChange" data-direction="landscape">横屏</view>
 					</view>
+				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-960d20b8ffa4e8fe"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
 				</view>
 			</view>
 

@@ -2,7 +2,7 @@
   "name": "text-plus",
   "version": "1.0.0",
   "description": "微信小程序项目",
-  "scripts": {
+  "scripts": {	
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

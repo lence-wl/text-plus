@@ -6,7 +6,8 @@
     "van-switch": "../../components/vant/switch/index",
     "van-action-sheet": "../../components/vant/action-sheet/index",
     "van-overlay": "../../components/vant/overlay/index",
-    "van-transition": "../../components/vant/transition/index"
+    "van-transition": "../../components/vant/transition/index",
+    "van-field": "../../components/vant/field/index"
   },
   "navigationStyle": "custom",
   "enableShareTimeline": true

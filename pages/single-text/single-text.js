@@ -8,6 +8,7 @@ const configStore = require("../../utils/configStore.js");
 const { checkTextSecurity } = require("../../utils/security.js");
 const { createRenderer } = require("./renderer.js");
 const textMeasurer = require("./textMeasurer.js");
+const adManager = require("../../utils/adManager.js");
 
 const sysInfo = wx.getSystemInfoSync();
 
@@ -16,6 +17,7 @@ Page({
     canvasReady: false,
     showSettings: false,
     showEffectSheet: false,
+    activeTab: 'content',
     currentEffectName: '彩虹',
     effectOptions: effectManager.getEffectOptions(),
     currentSettings: [],
@@ -52,37 +54,60 @@ Page({
   // ========== 生命周期 ==========
 
   onLoad: function (options) {
-    const savedConfig = configStore.load();
+    var savedConfig = configStore.load();
     savedConfig.vertical = true;  // 竖排模式
 
+    // 解析分享配置（新格式：完整 JSON）
+    if (options && options.cfg) {
+      try {
+        var sharedConfig = JSON.parse(decodeURIComponent(options.cfg));
+        for (var key in sharedConfig) {
+          if (sharedConfig.hasOwnProperty(key)) {
+            savedConfig[key] = sharedConfig[key];
+          }
+        }
+      } catch (e) {
+        console.error('[single-text] Failed to parse shared config:', e);
+      }
+    }
+
+    // 向后兼容：单独的 text/effect 参数（旧版分享链接）
     if (options && options.text) {
       savedConfig.text = decodeURIComponent(options.text);
     }
     if (options && options.effect) {
       savedConfig.effectMode = options.effect;
-      const effectMap = {
-        'rainbow': 'applyRainbowEffect',
-        'neon': 'applyNeonEffect',
-        'glitch': 'applyGlitchEffect',
-        'wave': 'applyWaveEffect',
-        'colorCycle': 'applyColorCycleEffect',
-        'scalePulse': 'applyScalePulseEffect',
-        'glow': 'applyGlowEffect'
-      };
-      savedConfig.currentEffect = effectMap[options.effect] || savedConfig.currentEffect;
     }
 
-    this.setData({ config: savedConfig }, () => {
+    // 根据 effectMode 推导 currentEffect
+    var effectMap = {
+      'rainbow': 'applyRainbowEffect',
+      'neon': 'applyNeonEffect',
+      'glitch': 'applyGlitchEffect',
+      'wave': 'applyWaveEffect',
+      'colorCycle': 'applyColorCycleEffect',
+      'scalePulse': 'applyScalePulseEffect',
+      'glow': 'applyGlowEffect'
+    };
+    savedConfig.currentEffect = effectMap[savedConfig.effectMode] || savedConfig.currentEffect || 'applyRainbowEffect';
+
+    this.setData({ config: savedConfig }, function () {
       this._updateCurrentSettings();
     });
-
-    this._initInterstitialAd();
   },
 
   onReady: async function () {
     await new Promise(resolve => wx.nextTick(resolve));
     await new Promise(resolve => setTimeout(resolve, 100));
     this.initCanvas2D();
+
+    // 初始化插屏广告（5秒后展示）
+    adManager.initInterstitial('adunit-c9535d894c52703a');
+    var self = this;
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-c9535d894c52703a');
+    }, 5000);
   },
 
   onHide: function () {
@@ -90,10 +115,6 @@ Page({
   },
 
   onShow: function () {
-    // 使用页面自己的广告实例，不能用全局的（微信限制：2005 错误）
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
     if (!this.animationId && this.ctxRenderer && this.canvas) {
       this.animate();
     }
@@ -103,6 +124,10 @@ Page({
     if (this.animationId && this.canvas && this.canvas.cancelAnimationFrame) {
       this.canvas.cancelAnimationFrame(this.animationId);
       this.animationId = null;
+    }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
     }
     this._destroyEffect();
     if (this.ctxRenderer && typeof this.ctxRenderer.destroy === 'function') {
@@ -115,24 +140,48 @@ Page({
   // ========== 分享 ==========
 
   onShareAppMessage: function () {
-    const config = this.data.config;
-    const text = encodeURIComponent(config.text || '双击修改文字');
+    var c = this.data.config;
+    var shareConfig = {};
+    for (var key in c) {
+      if (c.hasOwnProperty(key) && key !== 'currentEffect') {
+        shareConfig[key] = c[key];
+      }
+    }
+    var cfg = encodeURIComponent(JSON.stringify(shareConfig));
     return {
-      title: '文字特效 - ' + (config.text || '双击修改文字'),
-      path: '/pages/single-text/single-text?text=' + text + '&effect=' + (config.effectMode || 'rainbow')
+      title: '文字特效 - ' + (c.text || '双击修改文字'),
+      path: '/pages/single-text/single-text?cfg=' + cfg
     };
   },
 
   onShareTimeline: function () {
-    const config = this.data.config;
-    const text = encodeURIComponent(config.text || '双击修改文字');
+    var c = this.data.config;
+    var shareConfig = {};
+    for (var key in c) {
+      if (c.hasOwnProperty(key) && key !== 'currentEffect') {
+        shareConfig[key] = c[key];
+      }
+    }
+    var cfg = encodeURIComponent(JSON.stringify(shareConfig));
     return {
-      title: '文字特效 - ' + (config.text || '双击修改文字'),
-      query: 'text=' + text + '&effect=' + (config.effectMode || 'rainbow')
+      title: '文字特效 - ' + (c.text || '双击修改文字'),
+      query: 'cfg=' + cfg
     };
   },
 
-  // ========== 导航 ==========
+	// ========== 原生模板广告 ==========
+
+	adLoad: function () {
+		console.log('[原生模板广告] 加载成功');
+	},
+	adError: function (err) {
+		console.error('[原生模板广告] 加载失败', err);
+	},
+	adClose: function () {
+		console.log('[原生模板广告] 关闭');
+	},
+
+	// ========== 导航 ==========
 
   onBack: function () {
     wx.navigateBack();
@@ -180,11 +229,18 @@ Page({
   // ========== 设置面板 ==========
 
   toggleSettings: function () {
-    this._updateSettingsPanel(!this.data.showSettings);
+    this.setData({ showSettings: !this.data.showSettings, activeTab: this.data.activeTab || 'content' });
+  },
+
+  onTabChange: function (e) {
+    var tab = e.currentTarget.dataset.tab;
+    if (tab) this.setData({ activeTab: tab });
   },
 
   closeSettings: function () {
     this._updateSettingsPanel(false);
+    // 关闭设置面板时展示插屏广告
+    adManager.showInterstitial('adunit-c9535d894c52703a');
   },
 
   _updateSettingsPanel: function (show) {
@@ -192,7 +248,6 @@ Page({
       if (!show) {
         this._updateCache();
         configStore.save(this.data.config);
-        this._showInterstitialAd();
       }
     });
   },
@@ -204,35 +259,6 @@ Page({
         currentSettings: effect.settings,
         currentEffectName: effect.name
       });
-    }
-  },
-
-  // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-c9535d894c52703a'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[单行插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[单行插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      // 创建后立即加载
-      this._interstitialAd.load();
-    }
-  },
-
-  _showInterstitialAd: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
     }
   },
 

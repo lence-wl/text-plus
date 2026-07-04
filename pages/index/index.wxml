@@ -1,4 +1,15 @@
 <scroll-view class="page" scroll-y>
+  <!-- 引导 tooltip：箭头指向右上角 ··· -->
+  <view class="guide-tip" wx:if="{{showGuide}}" style="top: {{0}}px; left: {{guideLeft-10}}px;">
+    <view class="guide-tip__arrow" style="margin-left: {{arrowOffset}}px;"></view>
+    <view class="guide-tip__body">
+      <view class="guide-tip__body-inner">
+        <text class="guide-tip__close" catchtap="onDismissGuide">✕</text>
+        <text class="guide-tip__text">添加到我的小程序</text>
+      </view>
+    </view>
+  </view>
+
   <view wx:for="{{categories}}" wx:key="title" class="section">
     <view class="section__head">
       <view class="section__bar" style="background: {{item.color}}"></view>
@@ -23,6 +34,18 @@
         </view>
       </view>
     </view>
+
+    <!-- 在第二个分类（创意工具）后插入广告 -->
+    <block wx:if="{{index === 1}}">
+      <view class="ad-container">
+        <ad-custom
+          unit-id="adunit-b88b16a904e9f37a"
+          bindload="onAdLoad"
+          binderror="onAdError"
+          bindclose="onAdClose"
+        ></ad-custom>
+      </view>
+    </block>
   </view>
 
   <view class="footer">

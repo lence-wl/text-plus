@@ -1,0 +1,66 @@
+page {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.camera-box {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.camera {
+  width: 100%;
+  height: 100%;
+}
+
+.watermark-bg {
+  position: absolute;
+  left: 32rpx;
+  bottom: 200rpx;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+}
+
+.watermark {
+  display: flex;
+  flex-direction: column;
+}
+
+.watermark-time,
+.watermark-address,
+.watermark-text {
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 36rpx;
+  font-weight: 500;
+}
+
+.btn-box {
+  position: absolute;
+  bottom: 60rpx;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.take-btn {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 6rpx solid rgba(255, 255, 255, 0.4);
+}
+
+.offscreen-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 750px;
+  height: 1334px;
+}

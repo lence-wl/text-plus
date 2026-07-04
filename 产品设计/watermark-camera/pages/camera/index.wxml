@@ -1,0 +1,26 @@
+<view class="camera-box">
+  <camera
+    class="camera"
+    device-position="back"
+    flash="off"
+    binderror="onCameraError"
+  >
+    <cover-view class="watermark-bg">
+      <cover-view class="watermark">
+        <cover-view class="watermark-time">{{nowTime}}</cover-view>
+        <cover-view class="watermark-address">{{address}}</cover-view>
+        <cover-view class="watermark-text">{{customText}}</cover-view>
+      </cover-view>
+    </cover-view>
+  </camera>
+
+  <cover-view class="btn-box">
+    <cover-view class="take-btn" bindtap="onTakePhoto"></cover-view>
+  </cover-view>
+</view>
+
+<canvas
+  type="2d"
+  id="waterCanvas"
+  class="offscreen-canvas"
+></canvas>

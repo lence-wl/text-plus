@@ -240,3 +240,6 @@ page {
   color: #fff;
   background: #667eea;
 }
+.van-field__control--textarea{
+min-height: 100px !important;
+}

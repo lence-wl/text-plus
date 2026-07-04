@@ -26,7 +26,14 @@ Component({
 
   methods: {
     onTap() {
-      wx.navigateBack({ delta: this.properties.delta })
+      var self = this;
+      wx.navigateBack({
+        delta: self.properties.delta,
+        fail: function () {
+          // 没有可返回的页面（如从分享卡片直接进入），跳转首页
+          wx.redirectTo({ url: '/pages/index/index' });
+        }
+      });
     }
   }
 })

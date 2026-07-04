@@ -4,6 +4,7 @@
  */
 
 const { checkTextSecurity } = require("../../utils/security.js");
+const adManager = require("../../utils/adManager.js");
 
 const STORAGE_KEY = 'gridcut_config';
 
@@ -48,17 +49,31 @@ Page({
 
   // ========== 生命周期 ==========
 
-  onLoad: function () {
+  onLoad: function (options) {
+    // 解析分享配置（完整 JSON 格式）
+    if (options && options.cfg) {
+      try {
+        var shared = JSON.parse(decodeURIComponent(options.cfg));
+        this.setData({ config: Object.assign({}, DEFAULT_CONFIG, shared) });
+      } catch (e) {
+        console.error('[gridcut] Failed to parse shared config:', e);
+      }
+    }
+
     try {
-      const saved = wx.getStorageSync(STORAGE_KEY);
+      var saved = wx.getStorageSync(STORAGE_KEY);
       if (saved && typeof saved === 'object') {
-        this.setData({ config: { ...DEFAULT_CONFIG, ...saved } });
+        // 本地存储仅在没有分享配置时覆盖默认值
+        if (!options || !options.cfg) {
+          this.setData({ config: Object.assign({}, DEFAULT_CONFIG, saved) });
+        }
       }
     } catch (e) {
       // ignore
     }
-    this._initInterstitialAd();
     this._initRewardedVideoAd();
+    // 初始化插屏广告（补充展示）
+    adManager.initInterstitial('adunit-e27403557732ca1a');
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -74,11 +89,7 @@ Page({
     return { w: Math.round(cw), h: Math.round(ch) };
   },
 
-  onShow: function () {
-    if (this._interstitialAd) {
-      this._interstitialAd.show().catch(() => {});
-    }
-  },
+  onShow: function () {},
 
   onReady: function () {
     var sysInfo = wx.getSystemInfoSync();
@@ -90,12 +101,22 @@ Page({
       self._initTimer = null;
       self._initPreviewCanvas();
     }, 200);
+
+    // 5秒后展示插屏广告（补充激励视频之外的广告位，最小间隔90秒）
+    self._adTimer = setTimeout(function () {
+      self._adTimer = null;
+      adManager.showInterstitial('adunit-e27403557732ca1a');
+    }, 5000);
   },
 
   onUnload: function () {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
+    }
+    if (this._adTimer) {
+      clearTimeout(this._adTimer);
+      this._adTimer = null;
     }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
@@ -105,26 +126,6 @@ Page({
   },
 
   // ========== 广告 ==========
-
-  _initInterstitialAd: function () {
-    if (wx.createInterstitialAd) {
-      this._interstitialAd = wx.createInterstitialAd({
-        adUnitId: 'adunit-e27403557732ca1a'
-      });
-      this._interstitialAd.onLoad(() => {
-        console.log('[切字插屏广告] 加载成功');
-      });
-      this._interstitialAd.onError((err) => {
-        console.error('[切字插屏广告] 加载失败', err);
-      });
-      this._interstitialAd.onClose(() => {
-        if (this._interstitialAd) {
-          this._interstitialAd.load().catch(() => {});
-        }
-      });
-      this._interstitialAd.load();
-    }
-  },
 
   _initRewardedVideoAd: function () {
     if (wx.createRewardedVideoAd) {
@@ -177,6 +178,36 @@ Page({
 
   onBack: function () {
     wx.navigateBack();
+  },
+
+  // ========== 分享 ==========
+
+  onShareAppMessage: function () {
+    var c = this.data.config;
+    var shareConfig = {};
+    for (var key in c) {
+      if (c.hasOwnProperty(key)) shareConfig[key] = c[key];
+    }
+    var cfg = encodeURIComponent(JSON.stringify(shareConfig));
+    var title = c.text || '';
+    return {
+      title: '九宫格切字「' + title + '」— 一字九图，刷爆朋友圈',
+      path: '/pages/gridcut/gridcut?cfg=' + cfg
+    };
+  },
+
+  onShareTimeline: function () {
+    var c = this.data.config;
+    var shareConfig = {};
+    for (var key in c) {
+      if (c.hasOwnProperty(key)) shareConfig[key] = c[key];
+    }
+    var cfg = encodeURIComponent(JSON.stringify(shareConfig));
+    var title = c.text || '';
+    return {
+      title: '九宫格切字「' + title + '」— 一字九图，刷爆朋友圈',
+      query: 'cfg=' + cfg
+    };
   },
 
   // ========== 初始化预览 Canvas ==========

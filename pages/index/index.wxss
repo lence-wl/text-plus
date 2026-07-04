@@ -127,3 +127,92 @@ page {
 .footer__feedback::after {
   border: none;
 }
+
+/* ========== 原生模板广告容器 ========== */
+
+.ad-container {
+  width: 100%;
+  margin: 24rpx 0;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+}
+
+/* 广告组件自身样式覆盖（可选） */
+.ad-container ad-custom {
+  display: block;
+  width: 100%;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+/* ========== 引导 tooltip ========== */
+
+.guide-tip {
+  position: fixed;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  animation: tipFadeIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translateY(-8rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.guide-tip__arrow {
+  width: 0;
+  height: 0;
+  border-left: 14rpx solid transparent;
+  border-right: 14rpx solid transparent;
+  border-bottom: 14rpx solid #fff;
+  filter: drop-shadow(0 -2rpx 4rpx rgba(0,0,0,0.08));
+}
+
+.guide-tip__body {
+  border-radius: 16rpx;
+  padding: 4rpx;
+  background: linear-gradient(270deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #845ef7, #ff6b6b);
+  background-size: 400% 400%;
+  animation: borderFlow 3s linear infinite;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.18);
+}
+
+@keyframes borderFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.guide-tip__body-inner {
+  background: #fff;
+  border-radius: 13rpx;
+  border: 3rpx dotted #4d96ff;
+  padding: 18rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  white-space: nowrap;
+}
+
+.guide-tip__text {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1;
+  letter-spacing: 2rpx;
+  animation: textBreathe 2s ease-in-out infinite;
+}
+
+@keyframes textBreathe {
+  0%, 100% { text-shadow: 0 0 0rpx transparent; }
+  50%      { text-shadow: 0 0 12rpx rgba(77, 150, 255, 0.6); }
+}
+
+.guide-tip__close {
+  font-size: 28rpx;
+  color: #bbb;
+  padding: 0 4rpx;
+  line-height: 1;
+}
