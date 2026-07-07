@@ -6,7 +6,7 @@
 		<text class="fallback-text">{{ config.text }}</text>
 	</view>
 	<!-- Canvas 始终全屏，设置面板浮在其上方 -->
-	<canvas type="2d" id="myCanvas" class="canvas canvas--full" 
+	<canvas type="2d" id="myCanvas" class="canvas canvas--full"
 	bindtouchstart="touchEvent" bindtouchmove="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent"></canvas>
 
 	<!-- 遮罩 -->
@@ -23,7 +23,8 @@
 		<view class="settings__tabs">
 			<view class="tab-item {{activeTab === 'content' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="content">内容</view>
 			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">样式</view>
-			<view class="tab-item {{activeTab === 'effect' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="effect">特效</view>
+			<view class="tab-item {{activeTab === 'font' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="font">字体</view>
+      <view class="tab-item {{activeTab === 'effect' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="effect">特效</view>
 			<view class="tab-item {{activeTab === 'scroll' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="scroll">滚动</view>
 		</view>
 
@@ -32,10 +33,14 @@
 			<!-- ========== 内容 ========== -->
 			<view class="tab-pane" wx:if="{{activeTab === 'content'}}">
 				<view class="set-row set-row--input">
-					<van-field style="width:100%;" value="{{ config.text }}" 
+					<van-field style="width:100%;" value="{{ config.text }}"
 					type="textarea"
 					rows="3"
 					bind:blur="onTextBlur" placeholder="请输入文字内容" custom-style="background:#f5f5f5;border-radius:8rpx;height:100rpx;" />
+				</view>
+				<view class="tool-btns">
+					<view class="tool-btn tool-btn--clear" bindtap="onClearText">清空</view>
+					<view class="tool-btn tool-btn--history" bindtap="onShowHistory">历史</view>
 				</view>
 				<view class="set-row">
 					<ad-custom
@@ -59,6 +64,9 @@
 				<view class="set-row">
 					<text class="set-row__label">文字加粗</text>
 					<van-switch checked="{{ config.fontWeight === 'bold' }}" bind:change="onFontWeightChange" />
+
+
+
 				</view>
 				<view class="set-row">
 					<text class="set-row__label">背景颜色</text>
@@ -170,9 +178,7 @@
 					</view>
 					<view class="set-row">
 						<text class="set-row__label">渐变方向</text>
-						<van-dropdown-menu direction="up" z-index="{{1000}}">
-							<van-dropdown-item value="{{ config.rainbowGradientType }}" options="{{ [{text: '垂直渐变', value: 0}, {text: '水平渐变', value: 1}] }}" bind:change="onRainbowGradientTypeChange" />
-						</van-dropdown-menu>
+						<view class="effect-picker" hover-class="effect-picker--hover" catch:tap="onGradientDirPickerTap">{{ rainbowGradientTypeLabel }}</view>
 					</view>
 					<view class="set-row">
 						<text class="set-row__label">阴影效果</text>
@@ -275,10 +281,46 @@
 				</view>
 			</view>
 
+
+      <!-- ========== 字体 ========== -->
+      <view class="tab-pane" wx:if="{{activeTab === 'font'}}">
+        <view class="fonts">
+          <view class="font-card {{!config.fontFamily ? 'font-card--on' : ''}}"
+            bindtap="onFontSelect" data-font="">
+            <text class="font-card__preview">默认</text>
+          </view>
+          <block wx:for="{{fontList}}" wx:for-item="f" wx:key="name">
+            <view class="font-card {{config.fontFamily===f.name?'font-card--on':''}}"
+              bindtap="onFontSelect" data-font="{{f.name}}">
+              <text class="font-card__preview" style="font-family:{{f.name}}">{{f.previewText}}</text>
+            </view>
+          </block>
+        </view>
+        <text style="display:none">{{_previewVersion}}</text>
+      </view>
 		</scroll-view>
 	</view>
 
-	<!-- 特效选择弹出层 -->
+  <!-- 渐变方向选择弹出层 -->
+		<view class="effect-sheet-mask" wx:if="{{showGradientSheet}}" catch:tap="onGradientSheetClose"></view>
+		<view class="effect-sheet {{showGradientSheet ? 'effect-sheet--show' : ''}}" wx:if="{{showGradientSheet}}">
+			<view class="effect-sheet__title">选择渐变方向</view>
+			<scroll-view class="effect-sheet__list" scroll-y>
+				<view
+					wx:for="{{gradientOptions}}"
+					wx:key="value"
+					class="effect-sheet__item {{item.value === config.rainbowGradientType ? 'effect-sheet__item--active' : ''}}"
+					data-value="{{item.value}}"
+					catch:tap="onGradientSheetSelect"
+				>{{item.text}}</view>
+			</scroll-view>
+			<view class="effect-sheet__cancel" catch:tap="onGradientSheetClose">取消</view>
+		</view>
+
+
+
+
+<!-- 特效选择弹出层 -->
 	<view class="effect-sheet-mask" wx:if="{{showEffectSheet}}" catch:tap="onEffectSheetClose"></view>
 	<view class="effect-sheet {{showEffectSheet ? 'effect-sheet--show' : ''}}" wx:if="{{showEffectSheet}}">
 		<view class="effect-sheet__title">选择特效</view>
@@ -293,4 +335,18 @@
 		</scroll-view>
 		<view class="effect-sheet__cancel" catch:tap="onEffectSheetClose">取消</view>
 	</view>
+
+  <!-- 历史记录弹出层 -->
+  <view class="effect-sheet-mask" wx:if="{{showHistorySheet}}" catch:tap="onHistoryClose"></view>
+  <view class="effect-sheet {{showHistorySheet ? 'effect-sheet--show' : ''}}" wx:if="{{showHistorySheet}}">
+    <view class="effect-sheet__title">历史记录</view>
+    <scroll-view class="effect-sheet__list" scroll-y>
+      <view wx:for="{{historyList}}" wx:key="time" class="history-item">
+        <text class="history-item__text" catch:tap="onHistorySelect" data-index="{{index}}">{{item.displayText}}</text>
+        <view class="history-item__del" catch:tap="onHistoryDelete" data-index="{{index}}">删除</view>
+      </view>
+      <view class="effect-sheet__empty" wx:if="{{historyList.length === 0}}">暂无历史记录</view>
+    </scroll-view>
+    <view class="effect-sheet__cancel" catch:tap="onHistoryClose">取消</view>
+  </view>
 </view>

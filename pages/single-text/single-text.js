@@ -9,6 +9,11 @@ const { checkTextSecurity } = require("../../utils/security.js");
 const { createRenderer } = require("./renderer.js");
 const textMeasurer = require("./textMeasurer.js");
 const adManager = require("../../utils/adManager.js");
+const api = require("../../utils/api.js");
+const fontLoader = require("../../utils/fontLoader.js");
+
+const HISTORY_KEY = 'single_text_history';
+const MAX_HISTORY = 20;
 
 const sysInfo = wx.getSystemInfoSync();
 
@@ -17,10 +22,18 @@ Page({
     canvasReady: false,
     showSettings: false,
     showEffectSheet: false,
+    showGradientSheet: false,
+    gradientOptions: [
+      { text: '垂直渐变', value: 0 },
+      { text: '水平渐变', value: 1 }
+    ],
+    rainbowGradientTypeLabel: '垂直渐变',
     activeTab: 'content',
     currentEffectName: '彩虹',
     effectOptions: effectManager.getEffectOptions(),
     currentSettings: [],
+    showHistorySheet: false,
+    historyList: [],
     config: {
       currentEffect: "applyRainbowEffect",
       effectMode: 'rainbow',
@@ -31,9 +44,13 @@ Page({
       scrollSpeed: 8,
       fontWeight: 'normal',
       vertical: true,
+      fontFamily: '',
       ...effectManager.getDefaultConfig()
     }
   },
+  fontList: [],
+  showFontSheet: false,
+  _previewVersion: 0,
 
   // Canvas 2D 渲染器
   ctxRenderer: null,
@@ -79,6 +96,11 @@ Page({
       savedConfig.effectMode = options.effect;
     }
 
+    // 分享打开时标记需要加载字体（在 onReady 中执行）
+    if (options && options.cfg && savedConfig.fontFamily) {
+      this._shareFontNeedsLoad = true;
+    }
+
     // 根据 effectMode 推导 currentEffect
     var effectMap = {
       'rainbow': 'applyRainbowEffect',
@@ -91,8 +113,15 @@ Page({
     };
     savedConfig.currentEffect = effectMap[savedConfig.effectMode] || savedConfig.currentEffect || 'applyRainbowEffect';
 
-    this.setData({ config: savedConfig }, function () {
+    var gradientLabel = savedConfig.rainbowGradientType === 1 ? '水平渐变' : '垂直渐变';
+    this.setData({ config: savedConfig, rainbowGradientTypeLabel: gradientLabel }, function () {
       this._updateCurrentSettings();
+    });
+
+    // 获取字体列表
+    var self = this;
+    fontLoader.getFontList().then(function (list) {
+      self.setData({ fontList: list });
     });
   },
 
@@ -100,6 +129,20 @@ Page({
     await new Promise(resolve => wx.nextTick(resolve));
     await new Promise(resolve => setTimeout(resolve, 100));
     this.initCanvas2D();
+
+    // 分享打开时加载字体（延迟确保 canvas 已就绪）
+    if (this._shareFontNeedsLoad) {
+      var self2 = this;
+      var shareFont = this.data.config.fontFamily;
+      var shareText = this.data.config.text;
+      if (shareFont && shareText) {
+        setTimeout(function () {
+          fontLoader.loadFont(shareFont, shareText, function (ok) {
+            if (ok) self2._recreateText();
+          });
+        }, 500);
+      }
+    }
 
     // 初始化插屏广告（5秒后展示）
     adManager.initInterstitial('adunit-c9535d894c52703a');
@@ -149,7 +192,7 @@ Page({
     }
     var cfg = encodeURIComponent(JSON.stringify(shareConfig));
     return {
-      title: '文字特效 - ' + (c.text || '双击修改文字'),
+      title: '我想说...ψ(｀∇´)ψ',
       path: '/pages/single-text/single-text?cfg=' + cfg
     };
   },
@@ -232,15 +275,50 @@ Page({
     this.setData({ showSettings: !this.data.showSettings, activeTab: this.data.activeTab || 'content' });
   },
 
+
+
+  /** 字体卡片点击 */
+  onFontSelect: function (e) {
+    var fontName = e.currentTarget.dataset.font || '';
+    this.setData({ "config.fontFamily": fontName });
+    var self = this;
+    var text = self.data.config.text;
+    if (fontName) {
+      fontLoader.loadFont(fontName, text, function (ok) {
+        if (ok) self._recreateText();
+      });
+    } else {
+      self._recreateText();
+    }
+  },
   onTabChange: function (e) {
     var tab = e.currentTarget.dataset.tab;
-    if (tab) this.setData({ activeTab: tab });
+    if (!tab) return;
+    this.setData({ activeTab: tab });
+    // 切换到字体 tab 时预加载预览
+    if (tab === 'font' && this.data.fontList.length > 0) {
+      var self = this;
+      fontLoader.loadPreviewFonts(this.data.fontList, function (count) {
+        self.setData({ _previewVersion: count });
+      });
+    }
   },
 
   closeSettings: function () {
     this._updateSettingsPanel(false);
     // 关闭设置面板时展示插屏广告
     adManager.showInterstitial('adunit-c9535d894c52703a');
+
+    // 上报内容日志（内容为空时不上报）
+    var c = this.data.config;
+    var text = c.text || '';
+    if (text.trim()) {
+      var logData = {};
+      for (var key in c) {
+        if (c.hasOwnProperty(key) && key !== 'currentEffect') logData[key] = c[key];
+      }
+      api.logEvent('single-text', 'settings', logData);
+    }
   },
 
   _updateSettingsPanel: function (show) {
@@ -274,7 +352,8 @@ Page({
         config.text,
         config.fontSize,
         config.fontWeight,
-        config.letterSpacing
+        config.letterSpacing,
+        config.fontFamily || ''
       );
     } else {
       this._cachedTextLength = this.data.config.fontSize;
@@ -375,7 +454,8 @@ Page({
     const baseStyle = {
       fontSize: config.fontSize,
       fontWeight: config.fontWeight,
-      letterSpacing: config.letterSpacing
+      letterSpacing: config.letterSpacing,
+      fontFamily: config.fontFamily || ''
     };
 
     // 创建特效实例
@@ -396,7 +476,7 @@ Page({
     if (this.ctxRenderer && this.ctxRenderer.ctx && config.letterSpacing > 0) {
       this.currentEffect.getCharWidths(
         this.ctxRenderer.ctx, config.text,
-        config.fontSize, config.fontWeight, config.letterSpacing
+        config.fontSize, config.fontWeight, config.letterSpacing, config.fontFamily || ''
       );
     }
   },
@@ -571,9 +651,11 @@ Page({
       }
       this.setData({ 'config.text': text });
       this._recreateText();
+      if (text && text.trim()) this._saveHistory(text);
     } catch (err) {
       this.setData({ 'config.text': text });
       this._recreateText();
+      if (text && text.trim()) this._saveHistory(text);
     }
   },
 
@@ -585,6 +667,26 @@ Page({
     this.setData({ showEffectSheet: false });
   },
 
+  onGradientDirPickerTap: function () {
+    this.setData({ showGradientSheet: true });
+  },
+
+  onGradientSheetClose: function () {
+    this.setData({ showGradientSheet: false });
+  },
+
+  onGradientSheetSelect: function (e) {
+    var value = e.currentTarget.dataset.value;
+    var label = value === 0 ? '垂直渐变' : '水平渐变';
+    this.setData({
+      showGradientSheet: false,
+      'config.rainbowGradientType': value,
+      rainbowGradientTypeLabel: label
+    });
+    if (this.currentEffect && this.currentEffect.updateConfig) {
+      this.currentEffect.updateConfig(this, 'rainbowGradientType', value);
+    }
+  },
   onEffectSheetSelect: function (e) {
     var index = e.currentTarget.dataset.index;
     var options = this.data.effectOptions;
@@ -747,9 +849,11 @@ Page({
   },
 
   onRainbowGradientTypeChange: function (e) {
-    this.setData({ "config.rainbowGradientType": e.detail });
+    var value = e.detail;
+    var label = value === 0 ? '垂直渐变' : '水平渐变';
+    this.setData({ 'config.rainbowGradientType': value, rainbowGradientTypeLabel: label });
     if (this.currentEffect && this.currentEffect.updateConfig) {
-      this.currentEffect.updateConfig(this, 'rainbowGradientType', e.detail);
+      this.currentEffect.updateConfig(this, 'rainbowGradientType', value);
     }
   },
 
@@ -838,6 +942,79 @@ Page({
 
   onScalePulseSpeedChange: function (e) {
     this.setData({ "config.scalePulseSpeed": e.detail });
+  },
+
+  // ========== 清空 & 历史 ==========
+
+  onClearText: function () {
+    var self = this;
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空全部文字内容吗？',
+      success: function (res) {
+        if (res.confirm) {
+          self.setData({ 'config.text': '' });
+          self._recreateText();
+        }
+      }
+    });
+  },
+
+  _loadHistory: function () {
+    try {
+      var list = wx.getStorageSync(HISTORY_KEY);
+      return (list && Array.isArray(list)) ? list : [];
+    } catch (e) { return []; }
+  },
+
+  _saveHistory: function (text) {
+    if (!text || !text.trim()) return;
+    var list = this._loadHistory();
+    list = list.filter(function (item) { return item.text !== text; });
+    list.unshift({ text: text, time: Date.now() });
+    if (list.length > MAX_HISTORY) list = list.slice(0, MAX_HISTORY);
+    try { wx.setStorageSync(HISTORY_KEY, list); } catch (e) { /* ignore */ }
+  },
+
+  onShowHistory: function () {
+    var list = this._loadHistory();
+    if (list.length === 0) {
+      wx.showToast({ title: '暂无历史记录', icon: 'none' });
+      return;
+    }
+    list = list.map(function (item) {
+      return { text: item.text, time: item.time, displayText: item.text.replace(/\n/g, ' ') };
+    });
+    this.setData({ showHistorySheet: true, historyList: list });
+  },
+
+  onHistoryClose: function () {
+    this.setData({ showHistorySheet: false });
+  },
+
+  onHistorySelect: function (e) {
+    var index = e.currentTarget.dataset.index;
+    var item = this.data.historyList[index];
+    if (item) {
+      this.setData({ 'config.text': item.text, showHistorySheet: false });
+      this._recreateText();
+    }
+  },
+
+  onHistoryDelete: function (e) {
+    var index = e.currentTarget.dataset.index;
+    var list = this._loadHistory();
+    list.splice(index, 1);
+    try { wx.setStorageSync(HISTORY_KEY, list); } catch (e) { /* ignore */ }
+    if (list.length === 0) {
+      this.setData({ showHistorySheet: false });
+      wx.showToast({ title: '已清空历史', icon: 'none' });
+    } else {
+      list = list.map(function (item) {
+        return { text: item.text, time: item.time, displayText: item.text.replace(/\n/g, ' ') };
+      });
+      this.setData({ historyList: list });
+    }
   }
 });
 

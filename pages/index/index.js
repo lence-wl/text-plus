@@ -1,6 +1,9 @@
+var STORAGE_FONT_MODAL = 'font_modal_dismissed'
+
 Page({
   data: {
     showGuide: false,
+    showFontModal: false,
     guideTop: 0,
     guideLeft: 0,
     arrowOffset: 0,
@@ -72,6 +75,23 @@ Page({
         ]
       }
     ]
+  },
+
+  onShow: function () {
+    // 字体功能弹窗：只显示一次
+    try {
+      var dismissed = wx.getStorageSync(STORAGE_FONT_MODAL);
+      if (!dismissed) {
+        this.setData({ showFontModal: true });
+      }
+    } catch (e) {
+      this.setData({ showFontModal: true });
+    }
+  },
+
+  onDismissFontModal: function () {
+    this.setData({ showFontModal: false });
+    try { wx.setStorageSync(STORAGE_FONT_MODAL, '1'); } catch (e) { /* ignore */ }
   },
 
   onTapItem: function (e) {

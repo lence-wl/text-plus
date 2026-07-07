@@ -216,3 +216,61 @@ page {
   padding: 0 4rpx;
   line-height: 1;
 }
+
+/* ========== 字体功能弹窗 ========== */
+.font-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.font-modal {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx 36rpx;
+  width: 560rpx;
+  text-align: center;
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.15);
+  animation: fontModalIn 0.3s ease;
+}
+
+@keyframes fontModalIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.font-modal__icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.font-modal__title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.font-modal__desc {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.7;
+  margin-bottom: 32rpx;
+}
+
+.font-modal__btn {
+  display: inline-block;
+  padding: 18rpx 80rpx;
+  background: linear-gradient(135deg, #667eea, #f093fb);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 40rpx;
+}

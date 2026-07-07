@@ -56,17 +56,17 @@ function createBaseEffect(impl) {
      * 获取预测量的逐字宽度数组（用于 letterSpacing 逐字绘制）
      * 仅当输入变更时才重新测量
      */
-    getCharWidths: function (ctx, text, fontSize, fontWeight, letterSpacing) {
+    getCharWidths: function (ctx, text, fontSize, fontWeight, letterSpacing, fontFamily) {
       if (letterSpacing <= 0) return null;
 
-      const key = text + '|' + fontSize + '|' + fontWeight;
+      const key = text + "|" + fontSize + "|" + fontWeight + "|" + (fontFamily || "");
       if (this._charWidths && this._cacheKey === key) {
         return this._charWidths;
       }
 
       if (ctx && text) {
         const chars = text.split('');
-        const metrics = textMeasurer.measureChars(ctx, chars, fontSize, fontWeight);
+        const metrics = textMeasurer.measureChars(ctx, chars, fontSize, fontWeight, fontFamily);
         this._charWidths = metrics.map(function (m) { return m.width; });
         this._cacheKey = key;
       }
@@ -77,8 +77,8 @@ function createBaseEffect(impl) {
     /**
      * 计算文字总宽度（用于 cycleWidth）
      */
-    calcTextWidth: function (ctx, text, fontSize, fontWeight, letterSpacing) {
-      return textMeasurer.calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing);
+    calcTextWidth: function (ctx, text, fontSize, fontWeight, letterSpacing, fontFamily) {
+      return textMeasurer.calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing, fontFamily);
     },
 
     // ========== 双副本循环绘制 ==========
@@ -183,7 +183,8 @@ function createBaseEffect(impl) {
         var style = {
           fontSize: config.fontSize,
           fontWeight: config.fontWeight,
-          letterSpacing: config.letterSpacing
+          letterSpacing: config.letterSpacing,
+          fontFamily: config.fontFamily || ''
         };
         this.drawLayer(ctx, style);
       }

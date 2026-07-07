@@ -60,7 +60,7 @@ const effectImpl = {
     // 预测量文字尺寸
     if (!this._textHeight && this._ctxRenderer && this._ctxRenderer.ctx) {
       var metrics = textMeasurer.measureText(
-        this._ctxRenderer.ctx, config.text, config.fontSize, config.fontWeight
+        this._ctxRenderer.ctx, config.text, config.fontSize, config.fontWeight, config.fontFamily
       );
       this._textHeight = metrics.width;
     }
@@ -70,7 +70,7 @@ const effectImpl = {
     var cycleW = self.cycleWidth;
     var textLen = self._textHeight || (config.fontSize * config.text.length * 0.7);
     var charWidths = self.getCharWidths(
-      ctx, config.text, config.fontSize, config.fontWeight, config.letterSpacing
+      ctx, config.text, config.fontSize, config.fontWeight, config.letterSpacing, config.fontFamily
     );
 
     function drawOne(x, y) {
@@ -80,6 +80,7 @@ const effectImpl = {
       canvasUtils.setTextStyle(ctx, {
         fontSize: config.fontSize,
         fontWeight: config.fontWeight,
+        fontFamily: config.fontFamily || '',
         fill: '#fff'
       });
 
@@ -124,7 +125,7 @@ const effectImpl = {
     this._textHeight = 0;
     if (this._ctxRenderer && this._ctxRenderer.ctx) {
       var metrics = textMeasurer.measureText(
-        this._ctxRenderer.ctx, config.text, config.fontSize, config.fontWeight
+        this._ctxRenderer.ctx, config.text, config.fontSize, config.fontWeight, config.fontFamily
       );
       this._textHeight = metrics.width;
     }

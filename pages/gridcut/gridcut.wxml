@@ -41,6 +41,9 @@
         placeholder-class="input-placeholder"
       />
     </view>
+		<view class="btn-settings" bind:tap="toggleSettings">
+			<text>设置</text>
+		</view>
     <view class="btn-export {{isExporting ? 'btn--disabled' : ''}}" bind:tap="onExport">
       <text>{{isExporting ? '导出中' : '导出'}}</text>
     </view>
@@ -87,6 +90,23 @@
       </van-slider>
     </SetItemWrapper>
 
+    
+    <!-- 字体选择 -->
+    <view class="sep">字体</view>
+    <view class="fonts" style="padding: 0 16px;">
+      <view class="font-card {{!config.fontFamily ? 'font-card--on' : ''}}"
+        bindtap="onFontSelect" data-font="">
+        <text class="font-card__preview">默认</text>
+      </view>
+      <block wx:for="{{fontList}}" wx:for-item="f" wx:key="name">
+        <view class="font-card {{config.fontFamily===f.name?'font-card--on':''}}"
+          bindtap="onFontSelect" data-font="{{f.name}}">
+          <text class="font-card__preview" style="font-family:{{f.name}}">{{f.previewText}}</text>
+        </view>
+      </block>
+    </view>
+
+
     <!-- 发光开关 -->
     <SetItemWrapper label="发光效果" fieldClass="slider_wrapper">
       <van-switch checked="{{ config.glowEnabled }}" bind:change="onGlowEnabledChange" />
@@ -105,4 +125,6 @@
       </SetItemWrapper>
     </block>
   </SettingsPanel>
+
+  
 </view>

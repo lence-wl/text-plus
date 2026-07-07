@@ -70,7 +70,8 @@ const effectImpl = {
     var startX = layer.x - totalW / 2;
     var baseY = layer.y;
 
-    ctx.font = fontWeight + ' ' + fontSize + 'px sans-serif';
+    var ff = config.fontFamily ? '"' + config.fontFamily + '", sans-serif' : 'sans-serif';
+    ctx.font = fontWeight + ' ' + fontSize + 'px ' + ff;
     ctx.fillStyle = config.waveColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

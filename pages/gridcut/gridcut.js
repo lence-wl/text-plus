@@ -5,6 +5,8 @@
 
 const { checkTextSecurity } = require("../../utils/security.js");
 const adManager = require("../../utils/adManager.js");
+const api = require("../../utils/api.js");
+const fontLoader = require("../../utils/fontLoader.js");
 
 const STORAGE_KEY = 'gridcut_config';
 
@@ -21,7 +23,8 @@ const DEFAULT_CONFIG = {
   glowColor: '#ff66ff',
   glowBlur: 15,
   gridRows: 3,
-  gridCols: 3
+  gridCols: 3,
+  fontFamily: ''
 };
 
 const MAX_TOTAL_SIZE = 4096;  // Canvas 最大安全边长
@@ -34,7 +37,10 @@ Page({
     exportTotal: 0,
     canvasWidth: 0,
     canvasHeight: 0,
-    config: { ...DEFAULT_CONFIG }
+    config: { ...DEFAULT_CONFIG },
+    fontList: [],
+    showFontSheet: false,
+    _previewVersion: 0
   },
 
   // Canvas 2D 实例
@@ -55,6 +61,10 @@ Page({
       try {
         var shared = JSON.parse(decodeURIComponent(options.cfg));
         this.setData({ config: Object.assign({}, DEFAULT_CONFIG, shared) });
+        // 标记需要加载分享的字体
+        if (shared.fontFamily) {
+          this._shareFontNeedsLoad = true;
+        }
       } catch (e) {
         console.error('[gridcut] Failed to parse shared config:', e);
       }
@@ -71,6 +81,11 @@ Page({
     } catch (e) {
       // ignore
     }
+    // 获取字体列表
+    var self = this;
+    fontLoader.getFontList().then(function (list) {
+      self.setData({ fontList: list });
+    });
     this._initRewardedVideoAd();
     // 初始化插屏广告（补充展示）
     adManager.initInterstitial('adunit-e27403557732ca1a');
@@ -102,6 +117,19 @@ Page({
       self._initPreviewCanvas();
     }, 200);
 
+    // 分享打开时加载字体（延迟确保 canvas 已就绪）
+    if (self._shareFontNeedsLoad) {
+      var shareFont = self.data.config.fontFamily;
+      var shareText = self.data.config.text;
+      if (shareFont && shareText) {
+        setTimeout(function () {
+          fontLoader.loadFont(shareFont, shareText, function (ok) {
+            if (ok) self._drawPreview();
+          });
+        }, 600);
+      }
+    }
+
     // 5秒后展示插屏广告（补充激励视频之外的广告位，最小间隔90秒）
     self._adTimer = setTimeout(function () {
       self._adTimer = null;
@@ -121,6 +149,18 @@ Page({
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
       this._tapTimer = null;
+    }
+    // 释放预览 canvas
+    if (this._previewCanvas) {
+      this._previewCanvas.width = 0;
+      this._previewCanvas.height = 0;
+      this._previewCanvas = null;
+      this._previewCtx = null;
+    }
+    // 销毁激励视频广告
+    if (this._rewardedVideoAd) {
+      try { this._rewardedVideoAd.destroy(); } catch (e) { /* ignore */ }
+      this._rewardedVideoAd = null;
     }
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
   },
@@ -213,6 +253,14 @@ Page({
   // ========== 初始化预览 Canvas ==========
 
   _initPreviewCanvas: function () {
+    // 释放旧 canvas
+    if (this._previewCanvas) {
+      this._previewCanvas.width = 0;
+      this._previewCanvas.height = 0;
+    }
+    this._previewCanvas = null;
+    this._previewCtx = null;
+
     const query = wx.createSelectorQuery();
     query.select('#previewCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
@@ -278,7 +326,8 @@ Page({
         ctx.shadowColor = config.glowColor || '#ff66ff';
         ctx.shadowBlur = (config.glowBlur || 15) * scale;
       }
-      ctx.font = (config.fontWeight || 'bold') + ' ' + cellFontSize + 'px "楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif';
+      var ff = config.fontFamily ? '"' + config.fontFamily + '", "楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif' : '"楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif';
+        ctx.font = (config.fontWeight || 'bold') + ' ' + cellFontSize + 'px ' + ff;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (var i = 0; i < chars.length && i < rows * cols; i++) {
@@ -297,7 +346,8 @@ Page({
         ctx.shadowColor = config.glowColor || '#ff66ff';
         ctx.shadowBlur = (config.glowBlur || 15) * scale;
       }
-      ctx.font = (config.fontWeight || 'bold') + ' ' + fontSize + 'px "楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif';
+      var ff2 = config.fontFamily ? '"' + config.fontFamily + '", "楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif' : '"楷体", "STKaiti", "KaiTi", "PingFang SC", sans-serif';
+        ctx.font = (config.fontWeight || 'bold') + ' ' + fontSize + 'px ' + ff2;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(config.text, w / 2, h / 2);
@@ -344,12 +394,49 @@ Page({
   // ========== 设置面板 ==========
 
   toggleSettings: function () {
-    this.setData({ showSettings: !this.data.showSettings });
+    var show = !this.data.showSettings;
+    this.setData({ showSettings: show });
+    if (show && this.data.fontList.length > 0) {
+      var self = this;
+      fontLoader.loadPreviewFonts(this.data.fontList, function (count) {
+        self.setData({ _previewVersion: count });
+      });
+    }
   },
 
+  
+  
+  
+
+  onFontSelect: function (e) {
+    var fontName = e.currentTarget.dataset.font || '';
+    this.setData({ "config.fontFamily": fontName });
+    if (fontName) {
+      var self = this;
+      fontLoader.loadFont(fontName, self.data.config.text || '', function (ok) {
+        if (ok) self._drawPreview();
+      });
+    } else {
+      this._drawPreview();
+    }
+  },
   closeSettings: function () {
     this.setData({ showSettings: false });
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+
+    // 上报内容日志
+    var c = this.data.config;
+    api.logEvent('gridcut', 'settings', {
+      text: c.text,
+      multiMode: c.multiMode,
+      fontSize: c.fontSize,
+      textColor: c.textColor,
+      bgColor: c.bgColor,
+      fontWeight: c.fontWeight,
+      glowEnabled: c.glowEnabled,
+      gridRows: c.gridRows,
+      gridCols: c.gridCols
+    });
   },
 
   // ========== 文字输入 ==========
@@ -485,7 +572,10 @@ Page({
       var ctx = offCanvas.getContext('2d');
       self._drawOnCtx(ctx, exportW, exportH, lineScale, true);
 
-      self._exportCellsFromOffscreen(offCanvas, cellSize, rows, cols);
+      self._exportCellsFromOffscreen(offCanvas, cellSize, rows, cols).then(function () {
+        offCanvas.width = 0;
+        offCanvas.height = 0;
+      });
     });
   },
 
@@ -504,11 +594,13 @@ Page({
             col * cellSize, row * cellSize, cellSize, cellSize,
             0, 0, cellSize, cellSize
           );
-          // 导出为 base64 → 写临时文件 → 保存
           var dataUrl = cellCanvas.toDataURL('image/jpeg', 0.95);
           var base64 = dataUrl.split(',')[1];
           var tempPath = wx.env.USER_DATA_PATH + '/gridcut_' + index + '.jpg';
           fs.writeFileSync(tempPath, base64, 'base64');
+          // 释放 cell canvas
+          cellCanvas.width = 0;
+          cellCanvas.height = 0;
 
           await new Promise(function (resolve, reject) {
             wx.saveImageToPhotosAlbum({
@@ -522,6 +614,25 @@ Page({
         }
       }
       wx.showToast({ title: '已保存' + (rows * cols) + '张图到相册', icon: 'success' });
+      try { for (var ri = 0; ri < rows; ri++) { for (var ci = 0; ci < cols; ci++) { var idx = ri * cols + ci; fs.unlinkSync(wx.env.USER_DATA_PATH + '/gridcut_' + idx + '.jpg'); } } } catch (e) { /* ignore */ }
+      // 清理临时文件
+      try {
+        for (var ri = 0; ri < rows; ri++) {
+          for (var ci = 0; ci < cols; ci++) {
+            var idx = ri * cols + ci;
+            fs.unlinkSync(wx.env.USER_DATA_PATH + '/gridcut_' + idx + '.jpg');
+          }
+        }
+      } catch (e) { /* ignore */ }
+      // 上报导出事件
+      var c = self.data.config;
+      api.logEvent('gridcut', 'action', {
+        action: 'export',
+        text: c.text,
+        multiMode: c.multiMode,
+        gridRows: c.gridRows,
+        gridCols: c.gridCols
+      });
     } catch (err) {
       console.error('[gridcut] export error:', err);
       if (!err || !err.errMsg || err.errMsg.indexOf('auth deny') === -1) {

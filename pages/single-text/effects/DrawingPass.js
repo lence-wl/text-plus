@@ -77,7 +77,7 @@ function createDrawingPass(options) {
       }
 
       ctx.fillStyle = fill;
-      canvasUtils.setTextStyle(ctx, { fontSize, fontWeight, fill });
+      canvasUtils.setTextStyle(ctx, { fontSize, fontWeight, fontFamily: style.fontFamily || '', fill });
 
       if (this.perChar) {
         // 逐字绘制（wave 模式）

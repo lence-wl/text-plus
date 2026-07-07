@@ -125,16 +125,17 @@ function drawHorizontalText(ctx, text, offsetX, style, letterSpacing, charWidths
 /**
  * 构建 CSS font 字符串
  */
-function buildFont(fontSize, fontWeight) {
+function buildFont(fontSize, fontWeight, fontFamily) {
   const weight = fontWeight || 'normal';
-  return `${weight} ${fontSize}px sans-serif`;
+  const family = fontFamily ? '"' + fontFamily + '", sans-serif' : 'sans-serif';
+  return `${weight} ${fontSize}px ${family}`;
 }
 
 /**
  * 设置文字绘制样式
  */
 function setTextStyle(ctx, style) {
-  ctx.font = buildFont(style.fontSize, style.fontWeight);
+  ctx.font = buildFont(style.fontSize, style.fontWeight, style.fontFamily);
   ctx.fillStyle = style.fill;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

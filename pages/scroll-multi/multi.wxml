@@ -4,7 +4,7 @@
 
 	<!-- 滚动区域（双击打开设置） -->
 	<view class="scroll-stage {{config.screenDirection === 'landscape' ? 'scroll-stage--landscape' : ''}}" style="background: {{config.bgColor}};" bindtouchstart="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent">
-		<view class="scroll-track" style="transform: translateY({{scrollY}}px);font-size: {{config.fontSize}}px;color: {{config.textColor}};">
+		<view class="scroll-track" style="transform: translateY({{scrollY}}px);font-size: {{config.fontSize}}px;color: {{config.textColor}};{{fontStyle}}">
 			<view class="scroll-block {{config.glowEnabled ? 'scroll-block--glow' : ''}}" style="text-align: {{config.textAlign}}; --glow-blur: {{config.glowBlur}}px; --glow-color: {{config.glowColor}};">
 				{{rawText}}
 			</view>
@@ -24,7 +24,8 @@
 		<!-- 标签栏 -->
 		<view class="settings__tabs">
 			<view class="tab-item {{activeTab === 'content' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="content">内容</view>
-			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">字体</view>
+			<view class="tab-item {{activeTab === 'style' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="style">样式</view>
+      <view class="tab-item {{activeTab === 'font' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="font">字体</view>
 			<view class="tab-item {{activeTab === 'color' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="color">颜色</view>
 			<view class="tab-item {{activeTab === 'glow' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="glow">发光</view>
 			<view class="tab-item {{activeTab === 'screen' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="screen">滚动</view>
@@ -35,6 +36,10 @@
 
 			<view class="tab-pane" wx:if="{{activeTab === 'content'}}">
 				<van-field type="textarea" value="{{rawText}}" placeholder="输入文字，换行即分行..." custom-style="background:#f5f5f5;border-radius:8rpx;min-height:100px;font-size:28rpx;" bind:blur="onTextBlur" />
+				<view class="tool-btns">
+					<view class="tool-btn tool-btn--clear" bindtap="onClearText">清空</view>
+					<view class="tool-btn tool-btn--history" bindtap="onShowHistory">历史</view>
+				</view>
 				<view class="set-row">
 					<ad-custom
 						unit-id="adunit-09650eed41b2c79b"
@@ -53,7 +58,7 @@
 						<view class="custom-btn" slot="button">{{config.fontSize}}</view>
 					</van-slider>
 				</view>
-				
+
 				<view class="set-row">
 					<text class="set-row__label">对齐方式</text>
 					<view class="align-picker">
@@ -104,6 +109,9 @@
 							<view class="custom-btn" slot="button">{{config.glowBlur}}</view>
 						</van-slider>
 					</view>
+
+
+
 					<view class="set-row">
 						<text class="set-row__label">发光颜色</text>
 						<view style="flex:1;"><ColorPicker colorList="{{[config.glowColor]}}" bind:colorChange="handleGlowColorChange" /></view>
@@ -145,6 +153,38 @@
 				</view>
 			</view>
 
+
+      <!-- ========== 字体 ========== -->
+      <view class="tab-pane" wx:if="{{activeTab === 'font'}}">
+        <view class="fonts">
+          <view class="font-card {{!config.fontFamily ? 'font-card--on' : ''}}"
+            bindtap="onFontSelect" data-font="">
+            <text class="font-card__preview">默认</text>
+          </view>
+          <block wx:for="{{fontList}}" wx:for-item="f" wx:key="name">
+            <view class="font-card {{config.fontFamily===f.name?'font-card--on':''}}"
+              bindtap="onFontSelect" data-font="{{f.name}}">
+              <text class="font-card__preview" style="font-family:{{f.name}}">{{f.previewText}}</text>
+            </view>
+          </block>
+        </view>
+        <text style="display:none">{{_previewVersion}}</text>
+      </view>
 		</scroll-view>
 	</view>
+
+  <!-- 历史记录弹出层 -->
+  <view class="effect-sheet-mask" wx:if="{{showHistorySheet}}" catch:tap="onHistoryClose"></view>
+  <view class="effect-sheet {{showHistorySheet ? 'effect-sheet--show' : ''}}" wx:if="{{showHistorySheet}}">
+    <view class="effect-sheet__title">历史记录</view>
+    <scroll-view class="effect-sheet__list" scroll-y>
+      <view wx:for="{{historyList}}" wx:key="time" class="history-item">
+        <text class="history-item__text" catch:tap="onHistorySelect" data-index="{{index}}">{{item.displayText}}</text>
+        <view class="history-item__del" catch:tap="onHistoryDelete" data-index="{{index}}">删除</view>
+      </view>
+      <view class="effect-sheet__empty" wx:if="{{historyList.length === 0}}">暂无历史记录</view>
+    </scroll-view>
+    <view class="effect-sheet__cancel" catch:tap="onHistoryClose">取消</view>
+  </view>
+
 </view>

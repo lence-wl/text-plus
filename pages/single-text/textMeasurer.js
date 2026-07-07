@@ -4,14 +4,13 @@
  * 仅在文字内容/字体大小变化时调用，不在动画循环中调用
  */
 
-const DEFAULT_FONT_FAMILY = 'sans-serif';
-
 /**
  * 构建 CSS font 字符串
  */
-function _buildFont(fontSize, fontWeight) {
+function _buildFont(fontSize, fontWeight, fontFamily) {
   const weight = fontWeight || 'normal';
-  return `${weight} ${fontSize}px ${DEFAULT_FONT_FAMILY}`;
+  const family = fontFamily ? '"' + fontFamily + '", sans-serif' : 'sans-serif';
+  return `${weight} ${fontSize}px ${family}`;
 }
 
 /**
@@ -20,14 +19,15 @@ function _buildFont(fontSize, fontWeight) {
  * @param {string} text - 文字内容
  * @param {number} fontSize - 字体大小（px）
  * @param {string} fontWeight - 字体粗细（'normal' | 'bold'）
+ * @param {string} [fontFamily] - 自定义字体名
  * @returns {{ width: number, height: number, font: string }}
  */
-function measureText(ctx, text, fontSize, fontWeight) {
+function measureText(ctx, text, fontSize, fontWeight, fontFamily) {
   if (!ctx || !text) {
     return { width: 0, height: 0, font: '' };
   }
 
-  const font = _buildFont(fontSize, fontWeight);
+  const font = _buildFont(fontSize, fontWeight, fontFamily);
   ctx.font = font;
   const metrics = ctx.measureText(text);
 
@@ -45,14 +45,15 @@ function measureText(ctx, text, fontSize, fontWeight) {
  * @param {string[]} chars - 字符数组
  * @param {number} fontSize - 字体大小（px）
  * @param {string} fontWeight - 字体粗细
+ * @param {string} [fontFamily] - 自定义字体名
  * @returns {Array<{ char: string, width: number, height: number }>}
  */
-function measureChars(ctx, chars, fontSize, fontWeight) {
+function measureChars(ctx, chars, fontSize, fontWeight, fontFamily) {
   if (!ctx || !chars || chars.length === 0) {
     return [];
   }
 
-  const font = _buildFont(fontSize, fontWeight);
+  const font = _buildFont(fontSize, fontWeight, fontFamily);
   ctx.font = font;
 
   return chars.map(char => {
@@ -73,9 +74,10 @@ function measureChars(ctx, chars, fontSize, fontWeight) {
  * @param {number} fontSize
  * @param {string} fontWeight
  * @param {number} letterSpacing - 字符间距（px）
+ * @param {string} [fontFamily] - 自定义字体名
  * @returns {number} 横向文字的总宽度
  */
-function calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing) {
+function calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing, fontFamily) {
   if (!ctx || !text || text.length === 0) {
     return 0;
   }
@@ -84,13 +86,13 @@ function calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing) {
 
   if (spacing <= 0) {
     // 无间距：直接用整段文字的宽度
-    const metrics = measureText(ctx, text, fontSize, fontWeight);
+    const metrics = measureText(ctx, text, fontSize, fontWeight, fontFamily);
     return metrics.width;
   }
 
   // 有间距：逐字测量并累加
   const chars = text.split('');
-  const charMetrics = measureChars(ctx, chars, fontSize, fontWeight);
+  const charMetrics = measureChars(ctx, chars, fontSize, fontWeight, fontFamily);
   let total = 0;
   charMetrics.forEach((cm, i) => {
     total += cm.width;
@@ -105,7 +107,7 @@ function calcTextWidth(ctx, text, fontSize, fontWeight, letterSpacing) {
  * 计算竖排文字总高度（用于滚动判定）
  * @deprecated 使用 calcTextWidth 替代
  */
-function calcVerticalTextLength(ctx, text, fontSize, fontWeight, letterSpacing) {
+function calcVerticalTextLength(ctx, text, fontSize, fontWeight, letterSpacing, fontFamily) {
   if (!ctx || !text || text.length === 0) {
     return 0;
   }
@@ -113,12 +115,12 @@ function calcVerticalTextLength(ctx, text, fontSize, fontWeight, letterSpacing) 
   const spacing = letterSpacing || 0;
 
   if (spacing <= 0) {
-    const metrics = measureText(ctx, text, fontSize, fontWeight);
+    const metrics = measureText(ctx, text, fontSize, fontWeight, fontFamily);
     return metrics.width;
   }
 
   const chars = text.split('');
-  const charMetrics = measureChars(ctx, chars, fontSize, fontWeight);
+  const charMetrics = measureChars(ctx, chars, fontSize, fontWeight, fontFamily);
   let total = 0;
   charMetrics.forEach((cm, i) => {
     total += cm.width;

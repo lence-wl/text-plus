@@ -1,7 +1,14 @@
 // app.js
+var api = require('./utils/api.js')
+
 App({
   globalData: {
     userInfo: null
+  },
+
+  onLaunch: function () {
+    // 静默登录，后续 API 调用可直接用 token
+    api.login()
   },
 
   /**

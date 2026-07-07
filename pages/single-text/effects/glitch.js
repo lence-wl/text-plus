@@ -90,7 +90,8 @@ const effectImpl = {
     var style = {
       fontSize: config.fontSize,
       fontWeight: config.fontWeight,
-      letterSpacing: config.letterSpacing
+      letterSpacing: config.letterSpacing,
+      fontFamily: config.fontFamily || ''
     };
 
     function drawOne(layer) {

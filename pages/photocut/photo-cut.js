@@ -6,6 +6,7 @@
 
 const STORAGE_KEY = 'photocut_config';
 const adManager = require("../../utils/adManager.js");
+const api = require("../../utils/api.js");
 
 const DEFAULT_CONFIG = {
   gridColor: 'rgba(0,0,0,0.6)',
@@ -135,6 +136,19 @@ Page({
       this._adTimer = null;
     }
     if (this._hintTimer) clearTimeout(this._hintTimer);
+    // 释放预览 canvas + 图片
+    if (this._previewCanvas) {
+      this._previewCanvas.width = 0;
+      this._previewCanvas.height = 0;
+      this._previewCanvas = null;
+      this._previewCtx = null;
+    }
+    this._image = null;
+    // 销毁激励视频广告
+    if (this._rewardedVideoAd) {
+      try { this._rewardedVideoAd.destroy(); } catch (e) { /* ignore */ }
+      this._rewardedVideoAd = null;
+    }
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
   },
 
@@ -187,6 +201,14 @@ Page({
   // ========== Canvas 初始化 ==========
 
   _initPreviewCanvas: function () {
+    // 释放旧 canvas
+    if (this._previewCanvas) {
+      this._previewCanvas.width = 0;
+      this._previewCanvas.height = 0;
+    }
+    this._previewCanvas = null;
+    this._previewCtx = null;
+
     var self = this;
     var query = wx.createSelectorQuery();
     query.select('#previewCanvas').fields({ node: true, size: true }).exec(function (res) {
@@ -231,6 +253,8 @@ Page({
       wx.showToast({ title: '画布未就绪', icon: 'none' });
       return;
     }
+    // 释放旧图片引用
+    self._image = null;
     var img = canvas.createImage();
     img.onload = function () {
       self._image = img;
@@ -411,7 +435,7 @@ Page({
       var cos = Math.cos(angle), sin = Math.sin(angle);
       this._transform.x += dx * cos - dy * sin;
       this._transform.y += dx * sin + dy * cos;
-      this._drawPreview();  // 拖拽即时绘制，不节流
+      this._scheduleDraw();  // 改用节流绘制
     } else if (touches.length === 2) {
       var dist = this._getTouchDist(touches);
       var touchAngle = this._getTouchAngle(touches);
@@ -483,6 +507,15 @@ Page({
   closeSettings: function () {
     this.setData({ showSettings: false });
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
+
+    // 上报设置日志
+    var c = this.data.config;
+    api.logEvent('photocut', 'settings', {
+      gridRows: c.gridRows,
+      gridCols: c.gridCols,
+      gridWidth: c.gridWidth,
+      gridColor: c.gridColor
+    });
   },
 
   onGridColorChange: function (e) {
@@ -575,11 +608,18 @@ Page({
         self._image = origImage;
         self._imgW = origW;
         self._imgH = origH;
-        self._exportCellsFromOffscreen(bigCanvas, exportCell, rows, cols);
+        self._exportCellsFromOffscreen(bigCanvas, exportCell, rows, cols).then(function () {
+          bigCanvas.width = 0;
+          bigCanvas.height = 0;
+        });
+        // 释放临时加载的图片
+        img.src = '';
       };
       img.onerror = function () {
         self.setData({ isExporting: false });
         wx.showToast({ title: '图片加载失败，请重试', icon: 'none' });
+        bigCanvas.width = 0;
+        bigCanvas.height = 0;
       };
     });
   },
@@ -588,7 +628,7 @@ Page({
     var self = this;
     var fs = wx.getFileSystemManager();
 
-    (async function () {
+    return (async function () {
       try {
         for (var row = 0; row < rows; row++) {
           for (var col = 0; col < cols; col++) {
@@ -607,6 +647,11 @@ Page({
             var base64 = dataUrl.split(',')[1];
             var tempPath = wx.env.USER_DATA_PATH + '/photocut_' + index + '.jpg';
             fs.writeFileSync(tempPath, base64, 'base64');
+            cellCanvas.width = 0;
+            cellCanvas.height = 0;
+            // 释放 cell canvas
+            cellCanvas.width = 0;
+            cellCanvas.height = 0;
 
             await new Promise(function (resolve, reject) {
               wx.saveImageToPhotosAlbum({
@@ -620,6 +665,14 @@ Page({
           }
         }
         wx.showToast({ title: '已保存' + (rows * cols) + '张图到相册', icon: 'success' });
+        try { for (var ri = 0; ri < rows; ri++) { for (var ci = 0; ci < cols; ci++) { var idx = ri * cols + ci; fs.unlinkSync(wx.env.USER_DATA_PATH + '/photocut_' + idx + '.jpg'); } } } catch (e) { /* ignore */ }
+        // 上报导出事件
+        var cfg = self.data.config;
+        api.logEvent('photocut', 'action', {
+          action: 'export',
+          gridRows: cfg.gridRows,
+          gridCols: cfg.gridCols
+        });
       } catch (err) {
         console.error('[photocut] export error:', err);
         if (!err || !err.errMsg || err.errMsg.indexOf('auth deny') === -1) {

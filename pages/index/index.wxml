@@ -53,3 +53,16 @@
     <button class="footer__feedback" open-type="feedback">意见建议</button>
   </view>
 </scroll-view>
+
+<!-- 字体功能弹窗 -->
+<view class="font-modal-mask" wx:if="{{showFontModal}}" catchtap="onDismissFontModal">
+  <view class="font-modal" catchtap="noop">
+    <view class="font-modal__title">字体功能上线啦！！</view>
+    <view class="font-modal__desc">
+     <view> 单行滚动、多行滚动、九宫格切字,</view>
+		 <view>现在都能选择字体了!</view>
+		 <view>数十种个性字体! 快去试试吧!</view>
+    </view>
+    <view class="font-modal__btn" bindtap="onDismissFontModal">知道了</view>
+  </view>
+</view>
