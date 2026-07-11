@@ -4,5 +4,6 @@
   },
   "navigationStyle": "custom",
   "disableScroll": true,
-  "navigationBarTitleText": "流光绘"
+  "navigationBarTitleText": "流光绘·丝绸光影绘画",
+  "enableShareTimeline": true
 }

@@ -9,11 +9,11 @@
 // ===== 服务器地址配置 =====
 var API_BASE = 'https://lovelytext.mym-english.com/api'
 try {
-  var accountInfo = wx.getAccountInfoSync()
-  if (accountInfo.miniProgram.envVersion === 'develop') {
-    // 替换成你 Mac 的局域网 IP
-    API_BASE = 'http://192.168.5.32:3000/api'
-  }
+  // var accountInfo = wx.getAccountInfoSync()
+  // if (accountInfo.miniProgram.envVersion === 'develop') {
+  //   // 替换成你 Mac 的局域网 IP
+  //   API_BASE = 'http://192.168.5.32:3000/api'
+  // }
 } catch (e) {}
 
 const TOKEN_KEY = 'app_token'

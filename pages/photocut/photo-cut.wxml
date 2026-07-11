@@ -1,15 +1,12 @@
 <view class="page">
   <!-- Canvas 预览区 -->
-  <view class="canvas-wrap">
+  <view class="canvas-wrap" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
     <view class="canvas-inner" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
       <canvas
         type="2d"
         id="previewCanvas"
         class="canvas"
         style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
-        bindtouchstart="onTouchStart"
-        bindtouchmove="onTouchMove"
-        bindtouchend="onTouchEnd"
         bind:tap="onCanvasTap"
       />
 
@@ -29,13 +26,17 @@
     </view>
   </view>
 
-  <!-- 宫格模式 -->
-  <view class="mode-bar">
-    <view class="mode-btn {{config.gridRows==2&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="2">2×2</view>
-    <view class="mode-btn {{config.gridRows==3&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="2">3×2</view>
-    <view class="mode-btn {{config.gridRows==2&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="3">2×3</view>
-    <view class="mode-btn {{config.gridRows==3&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="3">3×3</view>
-  </view>
+  <!-- 宫格模式（横向滚动） -->
+  <scroll-view class="mode-bar" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="mode-bar__inner">
+      <view class="mode-btn {{config.gridRows==1&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="1" data-cols="3">1×3</view>
+      <view class="mode-btn {{config.gridRows==2&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="2">2×2</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="2">3×2</view>
+      <view class="mode-btn {{config.gridRows==2&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="3">2×3</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==1?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="1">3×1</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="3">3×3</view>
+    </view>
+  </scroll-view>
 
   <!-- 底部操作栏 -->
   <view class="bottom-bar">

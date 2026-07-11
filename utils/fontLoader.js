@@ -6,9 +6,21 @@ const api = require('./api.js')
 
 var _cache = {}
 var _loadingMap = {}
-var _debounceTimers = {}
 var _previewRegistered = {}
 var TEMP_URL_TTL = 2 * 60 * 60 * 1000
+var FILEID_STORAGE_KEY = 'font_fileid_cache'
+
+/** 持久化 fileID 缓存 */
+function _loadFileIDCache() {
+  try {
+    var raw = wx.getStorageSync(FILEID_STORAGE_KEY)
+    return (raw && typeof raw === 'object') ? raw : {}
+  } catch (e) { return {} }
+}
+
+function _saveFileIDCache(cache) {
+  try { wx.setStorageSync(FILEID_STORAGE_KEY, cache) } catch (e) { /* ignore */ }
+}
 
 /** 获取字体列表（含预览文字） */
 function getFontList() {
@@ -67,7 +79,6 @@ function loadPreviewFonts(fontList, onProgress) {
       wx.loadFontFace({
         family: name,
         source: 'url("' + f.previewFileID + '")',
-        global: true,
         success: function () {
           console.log('[fontLoader] 预览注册成功:', name)
           _onPreviewDone()
@@ -119,17 +130,31 @@ function loadFont(fontName, text, callback) {
     return
   }
 
-  if (_debounceTimers[fontName]) clearTimeout(_debounceTimers[fontName])
-  _debounceTimers[fontName] = setTimeout(function () {
-    _doLoad(fontName, deduped, cacheKey, callback)
-  }, 200)
+  _doLoad(fontName, deduped, cacheKey, callback)
 }
 
 function _doLoad(fontName, deduped, cacheKey, callback) {
   _loadingMap[cacheKey] = [callback].filter(Boolean)
 
-  // 确保已登录，再发请求
-  wx.showLoading({ title: '字体加载中...', mask: true })
+  // 先查持久化缓存
+  var fileIDCache = _loadFileIDCache()
+  var cachedFileID = fileIDCache[cacheKey]
+  if (cachedFileID) {
+    _register(fontName, cachedFileID, function (ok) {
+      if (ok) {
+        _notify(_loadingMap[cacheKey], true)
+        delete _loadingMap[cacheKey]
+      } else {
+        // 注册失败，清缓存，请求接口
+        delete fileIDCache[cacheKey]
+        _saveFileIDCache(fileIDCache)
+        _ensureToken(function () { _doRequest(fontName, deduped, cacheKey, true) })
+      }
+    })
+    return
+  }
+
+  // 无缓存，请求接口
   _ensureToken(function () {
     _doRequest(fontName, deduped, cacheKey, true)
   })
@@ -144,32 +169,29 @@ function _doLoad(fontName, deduped, cacheKey, callback) {
       success: function (res) {
         if (res.data && res.data.code === 0 && res.data.fileID) {
           var fileID = res.data.fileID
-          _cache[cacheKey] = { fileID: fileID, expireAt: Date.now() + TEMP_URL_TTL }
+          var fc = _loadFileIDCache()
+          fc[cacheKey] = fileID
+          _saveFileIDCache(fc)
           _register(fontName, fileID, function (ok) {
-            wx.hideLoading()
             _notify(_loadingMap[cacheKey], ok)
             delete _loadingMap[cacheKey]
+            _cache[cacheKey] = { fileID: fileID, expireAt: Date.now() + TEMP_URL_TTL }
           })
         } else if (res.statusCode === 401 && isRetry) {
-          // token 过期，重新登录后重试
           api.login().then(function () {
             _doRequest(fontName, deduped, cacheKey, false)
           })
         } else {
-          wx.hideLoading()
-          wx.showToast({ title: '字体加载失败', icon: 'none' })
           _notify(_loadingMap[cacheKey], false)
           delete _loadingMap[cacheKey]
         }
       },
       fail: function () {
         if (isRetry) {
-          // 网络失败，1秒后重试一次
           setTimeout(function () {
             _doRequest(fontName, deduped, cacheKey, false)
           }, 1000)
         } else {
-          wx.hideLoading()
           _notify(_loadingMap[cacheKey], false)
           delete _loadingMap[cacheKey]
         }
@@ -184,16 +206,8 @@ function _ensureToken(callback) {
     callback()
     return
   }
-  wx.showLoading({ title: '连接中...', mask: true })
   api.login().then(function (ok) {
-    wx.hideLoading()
-    if (ok) {
-      wx.showLoading({ title: '字体加载中...', mask: true })
-      callback()
-    } else {
-      // 登录失败也继续（让 request 返回 401 错误）
-      callback()
-    }
+    callback()
   })
 }
 
@@ -206,7 +220,6 @@ function _register(fontName, fileID, callback) {
   wx.loadFontFace({
     family: fontName,
     source: 'url("' + fileID + '")',
-    global: true,
     success: function () {
       console.log('[fontLoader] 注册成功:', fontName)
       if (callback) callback(true)
@@ -218,8 +231,13 @@ function _register(fontName, fileID, callback) {
   })
 }
 
+function resetPreviewCache() {
+  _previewRegistered = {}
+}
+
 module.exports = {
   getFontList: getFontList,
   loadFont: loadFont,
-  loadPreviewFonts: loadPreviewFonts
+  loadPreviewFonts: loadPreviewFonts,
+  resetPreviewCache: resetPreviewCache
 }

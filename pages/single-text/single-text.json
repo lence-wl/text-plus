@@ -11,5 +11,6 @@
     "van-dropdown-item": "../../components/vant/dropdown-item/index"
   },
   "navigationStyle": "custom",
+  "navigationBarTitleText": "单行文字滚动·LED弹幕",
   "enableShareTimeline": true
 }

@@ -7,5 +7,6 @@
   },
   "navigationStyle": "custom",
   "disableScroll": true,
-  "navigationBarTitleText": "粒子喷泉"
+  "navigationBarTitleText": "手绘烟花·粒子喷泉特效",
+  "enableShareTimeline": true
 }

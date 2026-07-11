@@ -225,7 +225,7 @@ Page({
     var cfg = encodeURIComponent(JSON.stringify(shareData));
     var title = (this.data.rawText || '').substring(0, 20);
     return {
-      title: '你要来看看吗...ψ(｀∇´)ψ',
+      title: '多行文字滚动·弹幕生成器 — ' + (title || '文字特效工具'),
       path: '/pages/scroll-multi/multi?cfg=' + cfg
     };
   },
@@ -238,7 +238,7 @@ Page({
     var cfg = encodeURIComponent(JSON.stringify(shareData));
     var title = (this.data.rawText || '').substring(0, 20);
     return {
-      title: '多行滚动' + (title ? ' - ' + title : ''),
+      title: '多行文字滚动·弹幕生成器 — ' + (title || '文字特效'),
       query: 'cfg=' + cfg
     };
   },

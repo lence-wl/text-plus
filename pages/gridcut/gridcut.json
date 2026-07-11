@@ -8,5 +8,6 @@
     "van-switch": "/components/vant/switch/index"
   },
   "disableScroll": true,
-  "navigationBarTitleText": "九宫格切字"
+  "navigationBarTitleText": "九宫格切字·朋友圈排版",
+  "enableShareTimeline": true
 }

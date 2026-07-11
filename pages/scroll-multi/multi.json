@@ -10,5 +10,6 @@
     "van-field": "../../components/vant/field/index"
   },
   "navigationStyle": "custom",
+  "navigationBarTitleText": "多行文字滚动·弹幕生成",
   "enableShareTimeline": true
 }

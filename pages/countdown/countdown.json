@@ -11,5 +11,6 @@
   },
   "navigationStyle": "custom",
   "disableScroll": true,
-  "navigationBarTitleText": "倒计时"
+  "navigationBarTitleText": "倒计时·天数倒计时提醒",
+  "enableShareTimeline": true
 }

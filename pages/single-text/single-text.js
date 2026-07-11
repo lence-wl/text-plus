@@ -192,7 +192,7 @@ Page({
     }
     var cfg = encodeURIComponent(JSON.stringify(shareConfig));
     return {
-      title: '我想说...ψ(｀∇´)ψ',
+      title: '单行文字滚动·LED弹幕 — ' + (c.text || '文字特效工具'),
       path: '/pages/single-text/single-text?cfg=' + cfg
     };
   },
@@ -207,7 +207,7 @@ Page({
     }
     var cfg = encodeURIComponent(JSON.stringify(shareConfig));
     return {
-      title: '文字特效 - ' + (c.text || '双击修改文字'),
+      title: '单行文字滚动·LED弹幕 — ' + (c.text || '文字特效工具'),
       query: 'cfg=' + cfg
     };
   },

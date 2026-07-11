@@ -19,16 +19,23 @@
     </view>
   </view>
 
-  <!-- 宫格模式 + 单字/多字 -->
-  <view class="mode-bar">
+  <!-- 单字/多字切换 -->
+  <view class="mode-toggle-row">
     <view class="mode-btn {{!config.multiMode?'mode-btn--active':''}}" bind:tap="onMultiModeToggle">单字</view>
     <view class="mode-btn {{config.multiMode?'mode-btn--active':''}}" bind:tap="onMultiModeToggle">多字</view>
-		<view style="width: 40rpx;"></view>
-    <view class="mode-btn {{config.gridRows==2&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="2">2×2</view>
-    <view class="mode-btn {{config.gridRows==3&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="2">3×2</view>
-    <view class="mode-btn {{config.gridRows==2&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="3">2×3</view>
-    <view class="mode-btn {{config.gridRows==3&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="3">3×3</view>
   </view>
+
+  <!-- 宫格模式（横向滚动） -->
+  <scroll-view class="grid-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="grid-scroll__inner">
+      <view class="mode-btn {{config.gridRows==1&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="1" data-cols="3">1×3</view>
+      <view class="mode-btn {{config.gridRows==2&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="2">2×2</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==2?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="2">3×2</view>
+      <view class="mode-btn {{config.gridRows==2&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="2" data-cols="3">2×3</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==1?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="1">3×1</view>
+      <view class="mode-btn {{config.gridRows==3&&config.gridCols==3?'mode-btn--active':''}}" bind:tap="onGridMode" data-rows="3" data-cols="3">3×3</view>
+    </view>
+  </scroll-view>
 
   <!-- 底部操作栏 -->
   <view class="bottom-bar">

@@ -11,32 +11,55 @@
   </view>
 
   <view wx:for="{{categories}}" wx:key="title" class="section">
-    <view class="section__head">
-      <view class="section__bar" style="background: {{item.color}}"></view>
-      <text class="section__title">{{item.title}}</text>
-    </view>
-    <view class="section__grid">
-      <view
-        wx:for="{{item.items}}"
-        wx:key="name"
-        wx:for-item="card"
-        class="card"
-        hover-class="card--hover"
-        data-page="{{card.page}}"
-        bindtap="onTapItem"
-      >
-        <view class="card__icon" style="background: {{item.color}}">
-          <text>{{card.icon}}</text>
+    <block wx:if="{{item.key === 'scroll'}}">
+      <!-- 文字滚动：特殊预览卡片 -->
+      <view class="section__head">
+        <view class="section__bar" style="background: {{item.color}}"></view>
+        <text class="section__title">{{item.title}}</text>
+      </view>
+      <view class="section__grid">
+        <!-- 单行滚动预览卡片 -->
+        <view class="scroll-card" hover-class="scroll-card--hover" bindtap="onSingleFreeUse">
+          <view class="scroll-card__preview scroll-card__preview--single">
+            <view class="single-scroll-stage">
+              <view class="single-scroll-track">
+                <text class="single-scroll-line {{singleEffectClass}}" style="{{singlePreviewStyle}}" wx:for="{{[1,2,3,4]}}" wx:key="*this">{{singleScrollText}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="scroll-card__body">
+            <view class="scroll-card__fonts" wx:if="{{scrollFonts.length}}">
+              <view class="font-tag {{index === singleActiveFont ? 'font-tag--active' : ''}}" wx:for="{{scrollFonts}}" wx:key="name" style="font-family:{{item.name}}" data-index="{{index}}" catchtap="onSwitchSingleFont">{{item.previewText}}</view>
+            </view>
+            <text style="display:none">{{_scrollFontVersion}}</text>
+            <view class="scroll-card__btn" catchtap="onSingleFreeUse">免费使用</view>
+          </view>
         </view>
-        <view class="card__info">
-          <text class="card__name">{{card.name}}</text>
-          <text class="card__desc">{{card.desc}}</text>
+
+        <!-- 多行滚动预览卡片 -->
+        <view class="scroll-card" hover-class="scroll-card--hover" bindtap="onMultiFreeUse">
+          <view class="scroll-card__preview scroll-card__preview--multi">
+            <view class="multi-scroll-stage">
+              <view class="multi-scroll-track">
+                <block wx:for="{{[1,2,3]}}" wx:key="*this">
+                  <block wx:for="{{multiScrollLines}}" wx:key="*this">
+                    <text class="multi-scroll-line {{multiEffectClass}}" style="{{multiPreviewStyle}}">{{item}}</text>
+                  </block>
+                </block>
+              </view>
+            </view>
+          </view>
+          <view class="scroll-card__body">
+            <view class="scroll-card__fonts" wx:if="{{multiScrollFonts.length}}">
+              <view class="font-tag {{index === multiActiveFont ? 'font-tag--active' : ''}}" wx:for="{{multiScrollFonts}}" wx:key="name" style="font-family:{{item.name}}" data-index="{{index}}" catchtap="onSwitchMultiFont">{{item.previewText}}</view>
+            </view>
+            <text style="display:none">{{_scrollFontVersion}}</text>
+            <view class="scroll-card__btn" catchtap="onMultiFreeUse">免费使用</view>
+          </view>
         </view>
       </view>
-    </view>
 
-    <!-- 在第二个分类（创意工具）后插入广告 -->
-    <block wx:if="{{index === 1}}">
+      <!-- 在文字滚动分类后插入广告 -->
       <view class="ad-container">
         <ad-custom
           unit-id="adunit-b88b16a904e9f37a"
@@ -46,10 +69,46 @@
         ></ad-custom>
       </view>
     </block>
+
+    <block wx:else>
+      <!-- 在效率工具前插入广告 -->
+      <view class="ad-container" wx:if="{{item.key === 'tools'}}">
+        <ad-custom
+          unit-id="adunit-9ca1ee2c9366d04c"
+          bindload="onAdLoad"
+          binderror="onAdError"
+          bindclose="onAdClose"
+        ></ad-custom>
+      </view>
+      <view class="section__head">
+        <view class="section__bar" style="background: {{item.color}}"></view>
+        <text class="section__title">{{item.title}}</text>
+      </view>
+      <view class="section__grid">
+        <view
+          wx:for="{{item.items}}"
+          wx:key="name"
+          wx:for-item="card"
+          class="card"
+          hover-class="card--hover"
+          data-page="{{card.page}}"
+          bindtap="onTapItem"
+        >
+          <view class="card__icon" style="background: {{item.color}}">
+            <text>{{card.icon}}</text>
+          </view>
+          <view class="card__info">
+            <text class="card__name">{{card.name}}</text>
+            <text class="card__desc">{{card.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
   </view>
 
   <view class="footer">
     <text class="footer__text">更多工具开发中...</text>
+    <text class="footer__desc">文字滚动弹幕·LED字幕特效工具箱，提供单行滚动、多行弹幕、九宫格切图切字、文字壁纸、随机转盘、倒计时、电子时钟、流光绘、手绘烟花、聊天记录生成等免费在线工具</text>
     <button class="footer__feedback" open-type="feedback">意见建议</button>
   </view>
 </scroll-view>

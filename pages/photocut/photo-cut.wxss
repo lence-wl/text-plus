@@ -128,18 +128,22 @@ page {
 
 /* ===== 底部操作栏 ===== */
 
-/* ===== 宫格模式栏 ===== */
+/* ===== 宫格模式栏（横向滚动） ===== */
 
 .mode-bar {
   width: 100%;
-  padding: 12rpx 32rpx 0;
+  margin-bottom: 30rpx;
+}
+
+.mode-bar__inner {
   display: flex;
   gap: 16rpx;
-  justify-content: center;
-	margin-bottom: 30rpx;
+  padding: 12rpx 32rpx 0;
+  white-space: nowrap;
 }
 
 .mode-btn {
+  flex-shrink: 0;
   padding: 10rpx 24rpx;
   border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.06);
