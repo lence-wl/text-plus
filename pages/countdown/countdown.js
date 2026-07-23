@@ -4,7 +4,7 @@
  */
 
 const STORAGE_KEY = 'countdown_app_data';
-const adManager = require("../../utils/adManager.js");
+
 
 // ========== 工具函数 ==========
 
@@ -131,8 +131,6 @@ Page({
           }, function () {
             this._syncPickerFromTarget(shared.targetDate);
           });
-          // 初始化插屏广告
-          adManager.initInterstitial('adunit-d33d47dd88ebafab');
           return;
         }
       } catch (e) {
@@ -160,9 +158,6 @@ Page({
     }, function () {
       this._syncPickerFromTarget(cd.targetDate);
     });
-
-    // 初始化插屏广告
-    adManager.initInterstitial('adunit-d33d47dd88ebafab');
   },
 
   onReady: function () {
@@ -173,12 +168,6 @@ Page({
         self._initCanvas();
       }, 200);
     });
-
-    // 5秒后展示插屏广告（最小间隔90秒）
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-d33d47dd88ebafab');
-    }, 5000);
   },
 
   onShow: function () {
@@ -195,10 +184,6 @@ Page({
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
@@ -689,8 +674,6 @@ Page({
       this._updateDisplay();
     });
     try { wx.setStorageSync(STORAGE_KEY, this.data.countdowns); } catch (e) { /* ignore */ }
-    // 添加新倒计时后30%概率展示插屏广告（最小间隔90秒）
-    adManager.showInterstitial('adunit-d33d47dd88ebafab');
   },
 
   /** 新建模式：点「取消」丢弃 */

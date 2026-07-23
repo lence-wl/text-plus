@@ -5,7 +5,7 @@
  */
 
 const STORAGE_KEY = 'photocut_config';
-const adManager = require("../../utils/adManager.js");
+
 const api = require("../../utils/api.js");
 
 const DEFAULT_CONFIG = {
@@ -88,8 +88,6 @@ Page({
       }
     } catch (e) { /* ignore */ }
     this._initRewardedVideoAd();
-    // 初始化插屏广告（补充展示）
-    adManager.initInterstitial('adunit-8a02756aec63f656');
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -118,22 +116,12 @@ Page({
       self._initTimer = null;
       self._initPreviewCanvas();
     }, 200);
-
-    // 5秒后展示插屏广告（补充激励视频之外的广告位，最小间隔90秒）
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-8a02756aec63f656');
-    }, 5000);
   },
 
   onUnload: function () {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     if (this._hintTimer) clearTimeout(this._hintTimer);
     // 释放预览 canvas + 图片

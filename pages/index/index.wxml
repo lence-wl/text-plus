@@ -29,7 +29,7 @@
           </view>
           <view class="scroll-card__body">
             <view class="scroll-card__fonts" wx:if="{{scrollFonts.length}}">
-              <view class="font-tag {{index === singleActiveFont ? 'font-tag--active' : ''}}" wx:for="{{scrollFonts}}" wx:key="name" style="font-family:{{item.name}}" data-index="{{index}}" catchtap="onSwitchSingleFont">{{item.previewText}}</view>
+              <view class="font-tag {{index === singleActiveFont ? 'font-tag--active' : ''}}" wx:for="{{scrollFonts}}" wx:key="name" style='font-family:"{{item.name}}"' data-index="{{index}}" catchtap="onSwitchSingleFont">{{item.previewText}}</view>
             </view>
             <text style="display:none">{{_scrollFontVersion}}</text>
             <view class="scroll-card__btn" catchtap="onSingleFreeUse">免费使用</view>
@@ -51,7 +51,7 @@
           </view>
           <view class="scroll-card__body">
             <view class="scroll-card__fonts" wx:if="{{multiScrollFonts.length}}">
-              <view class="font-tag {{index === multiActiveFont ? 'font-tag--active' : ''}}" wx:for="{{multiScrollFonts}}" wx:key="name" style="font-family:{{item.name}}" data-index="{{index}}" catchtap="onSwitchMultiFont">{{item.previewText}}</view>
+              <view class="font-tag {{index === multiActiveFont ? 'font-tag--active' : ''}}" wx:for="{{multiScrollFonts}}" wx:key="name" style='font-family:"{{item.name}}"' data-index="{{index}}" catchtap="onSwitchMultiFont">{{item.previewText}}</view>
             </view>
             <text style="display:none">{{_scrollFontVersion}}</text>
             <view class="scroll-card__btn" catchtap="onMultiFreeUse">免费使用</view>
@@ -113,15 +113,13 @@
   </view>
 </scroll-view>
 
-<!-- 字体功能弹窗 -->
-<view class="font-modal-mask" wx:if="{{showFontModal}}" catchtap="onDismissFontModal">
+<!-- 镜像功能弹窗 -->
+<view class="font-modal-mask" wx:if="{{showMirrorModal}}" catchtap="onDismissMirrorModal">
   <view class="font-modal" catchtap="noop">
-    <view class="font-modal__title">字体功能上线啦！！</view>
+    <view class="font-modal__title">文字滚动镜像功能上线啦！！</view>
     <view class="font-modal__desc">
-     <view> 单行滚动、多行滚动、九宫格切字,</view>
-		 <view>现在都能选择字体了!</view>
-		 <view>数十种个性字体! 快去试试吧!</view>
+     <view>直播场景下打开，屏幕中文字可以正常显示。</view>
     </view>
-    <view class="font-modal__btn" bindtap="onDismissFontModal">知道了</view>
+    <view class="font-modal__btn" bindtap="onDismissMirrorModal">知道了</view>
   </view>
 </view>

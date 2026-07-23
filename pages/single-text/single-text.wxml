@@ -6,7 +6,7 @@
 		<text class="fallback-text">{{ config.text }}</text>
 	</view>
 	<!-- Canvas 始终全屏，设置面板浮在其上方 -->
-	<canvas type="2d" id="myCanvas" class="canvas canvas--full"
+	<canvas type="2d" id="myCanvas" class="canvas canvas--full {{config.mirrorEnabled ? 'canvas--mirror' : ''}}"
 	bindtouchstart="touchEvent" bindtouchmove="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent"></canvas>
 
 	<!-- 遮罩 -->
@@ -26,6 +26,7 @@
 			<view class="tab-item {{activeTab === 'font' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="font">字体</view>
       <view class="tab-item {{activeTab === 'effect' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="effect">特效</view>
 			<view class="tab-item {{activeTab === 'scroll' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="scroll">滚动</view>
+			<view class="tab-item {{activeTab === 'mirror' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="mirror">镜像</view>
 		</view>
 
 		<scroll-view class="settings-panel__bd" scroll-y>
@@ -281,9 +282,31 @@
 				</view>
 			</view>
 
+			<!-- ========== 镜像 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'mirror'}}">
+				<view class="mirror-hint">💡 直播时开启，屏幕中文字就可以正常显示了哦</view>
+				<view class="set-row">
+					<text class="set-row__label">直播镜像</text>
+					<van-switch checked="{{config.mirrorEnabled}}" bind:change="onMirrorChange" />
+				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-7aa141c4c81b0dfb"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
+
 
       <!-- ========== 字体 ========== -->
       <view class="tab-pane" wx:if="{{activeTab === 'font'}}">
+        <view class="font-lang-tabs">
+          <view class="font-lang-tab {{fontLangTab === 'zh' ? 'font-lang-tab--on' : ''}}" bindtap="onFontLangTap" data-lang="zh">中文</view>
+          <view class="font-lang-tab {{fontLangTab === 'en' ? 'font-lang-tab--on' : ''}}" bindtap="onFontLangTap" data-lang="en">English</view>
+        </view>
         <view class="fonts">
           <view class="font-card {{!config.fontFamily ? 'font-card--on' : ''}}"
             bindtap="onFontSelect" data-font="">
@@ -291,8 +314,9 @@
           </view>
           <block wx:for="{{fontList}}" wx:for-item="f" wx:key="name">
             <view class="font-card {{config.fontFamily===f.name?'font-card--on':''}}"
+              wx:if="{{f.lang === fontLangTab}}"
               bindtap="onFontSelect" data-font="{{f.name}}">
-              <text class="font-card__preview" style="font-family:{{f.name}}">{{f.previewText}}</text>
+              <text class="font-card__preview" style="font-family:'{{f.name}}'">{{f.previewText}}</text>
             </view>
           </block>
         </view>

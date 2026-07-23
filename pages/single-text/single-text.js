@@ -8,7 +8,7 @@ const configStore = require("../../utils/configStore.js");
 const { checkTextSecurity } = require("../../utils/security.js");
 const { createRenderer } = require("./renderer.js");
 const textMeasurer = require("./textMeasurer.js");
-const adManager = require("../../utils/adManager.js");
+
 const api = require("../../utils/api.js");
 const fontLoader = require("../../utils/fontLoader.js");
 
@@ -45,12 +45,14 @@ Page({
       fontWeight: 'normal',
       vertical: true,
       fontFamily: '',
+      mirrorEnabled: false,
       ...effectManager.getDefaultConfig()
-    }
+    },
+    fontList: [],
+    fontLangTab: 'zh',
+    showFontSheet: false,
+    _previewVersion: 0
   },
-  fontList: [],
-  showFontSheet: false,
-  _previewVersion: 0,
 
   // Canvas 2D 渲染器
   ctxRenderer: null,
@@ -143,14 +145,6 @@ Page({
         }, 500);
       }
     }
-
-    // 初始化插屏广告（5秒后展示）
-    adManager.initInterstitial('adunit-c9535d894c52703a');
-    var self = this;
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-c9535d894c52703a');
-    }, 5000);
   },
 
   onHide: function () {
@@ -167,10 +161,6 @@ Page({
     if (this.animationId && this.canvas && this.canvas.cancelAnimationFrame) {
       this.canvas.cancelAnimationFrame(this.animationId);
       this.animationId = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     this._destroyEffect();
     if (this.ctxRenderer && typeof this.ctxRenderer.destroy === 'function') {
@@ -280,17 +270,27 @@ Page({
   /** 字体卡片点击 */
   onFontSelect: function (e) {
     var fontName = e.currentTarget.dataset.font || '';
-    this.setData({ "config.fontFamily": fontName });
     var self = this;
     var text = self.data.config.text;
     if (fontName) {
       fontLoader.loadFont(fontName, text, function (ok) {
-        if (ok) self._recreateText();
+        if (ok) {
+          self.setData({ "config.fontFamily": fontName });
+          self._recreateText();
+        } else {
+          wx.showToast({ title: '字体加载失败', icon: 'none' });
+        }
       });
     } else {
+      self.setData({ "config.fontFamily": '' });
       self._recreateText();
     }
   },
+  onFontLangTap: function (e) {
+    var lang = e.currentTarget.dataset.lang;
+    if (lang) this.setData({ fontLangTab: lang });
+  },
+
   onTabChange: function (e) {
     var tab = e.currentTarget.dataset.tab;
     if (!tab) return;
@@ -298,7 +298,7 @@ Page({
     // 切换到字体 tab 时预加载预览
     if (tab === 'font' && this.data.fontList.length > 0) {
       var self = this;
-      fontLoader.loadPreviewFonts(this.data.fontList, function (count) {
+      fontLoader.loadPreviewFonts(this.data.fontList).then(function (count) {
         self.setData({ _previewVersion: count });
       });
     }
@@ -306,8 +306,6 @@ Page({
 
   closeSettings: function () {
     this._updateSettingsPanel(false);
-    // 关闭设置面板时展示插屏广告
-    adManager.showInterstitial('adunit-c9535d894c52703a');
 
     // 上报内容日志（内容为空时不上报）
     var c = this.data.config;
@@ -650,12 +648,25 @@ Page({
         return;
       }
       this.setData({ 'config.text': text });
-      this._recreateText();
-      if (text && text.trim()) this._saveHistory(text);
+      this._handleTextChange(text);
     } catch (err) {
       this.setData({ 'config.text': text });
-      this._recreateText();
-      if (text && text.trim()) this._saveHistory(text);
+      this._handleTextChange(text);
+    }
+  },
+
+  _handleTextChange: function (text) {
+    var fontName = this.data.config.fontFamily;
+    var self = this;
+    if (fontName && text) {
+      // 文本变更后重新加载字体子集，确保新文字有字体效果
+      fontLoader.loadFont(fontName, text, function (ok) {
+        self._recreateText();
+        if (text && text.trim()) self._saveHistory(text);
+      });
+    } else {
+      self._recreateText();
+      if (text && text.trim()) self._saveHistory(text);
     }
   },
 
@@ -752,6 +763,10 @@ Page({
     this.setData({ "config.scrollSpeed": e.detail });
     if (!this._cachedConfig) this._cachedConfig = this.data.config;
     this._cachedConfig.scrollSpeed = e.detail;
+  },
+
+  onMirrorChange: function (e) {
+    this.setData({ 'config.mirrorEnabled': e.detail });
   },
 
   // --- 发光模式 ---
@@ -997,7 +1012,7 @@ Page({
     var item = this.data.historyList[index];
     if (item) {
       this.setData({ 'config.text': item.text, showHistorySheet: false });
-      this._recreateText();
+      this._handleTextChange(item.text);
     }
   },
 

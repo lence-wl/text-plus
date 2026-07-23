@@ -5,7 +5,7 @@
 
 var STORAGE_KEY = 'random_picker_data';
 var CUSTOM_SCENES_KEY = 'wheel_custom_scenes';
-const adManager = require("../../utils/adManager.js");
+
 
 // ========== 快捷场景 ==========
 
@@ -100,15 +100,6 @@ Page({
 
   onReady: function () {
     var self = this;
-    // 初始化插屏广告
-    adManager.initInterstitial('adunit-d40330e56e7deefc');
-    
-    // 进入页面5秒后展示插屏广告
-    this._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-d40330e56e7deefc');
-    }, 5000);
-    
     this._initTimer = setTimeout(function () {
       self._initTimer = null;
       self._initCanvas();
@@ -341,8 +332,6 @@ Page({
         self.setData({ animating: false });
         wx.vibrateShort({ type: 'medium' });
         self._showResult(opts[targetIdx]);
-        // 旋转结束后50%概率展示插屏广告
-        adManager.showInterstitial('adunit-d40330e56e7deefc');
       }
     }
 

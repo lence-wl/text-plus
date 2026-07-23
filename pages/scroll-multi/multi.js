@@ -5,21 +5,24 @@
 var STORAGE_KEY = 'scroll_multi_config';
 var HISTORY_KEY = 'scroll_multi_text_history';
 var MAX_HISTORY = 20;
-const adManager = require("../../utils/adManager.js");
+
 const api = require("../../utils/api.js");
 const fontLoader = require("../../utils/fontLoader.js");
+const { checkTextSecurity } = require("../../utils/security.js");
 
 var DEFAULT_CONFIG = {
   bgColor: '#1a1a2e',
   scrollSpeed: 3,
   fontSize: 30,
+  lineHeight: 1.8,
   textColor: '#ffffff',
   glowEnabled: true,
   textAlign: 'center',
   glowBlur: 12,
   glowColor: '#ff66ff',
   screenDirection: 'portrait',
-  fontFamily: ''
+  fontFamily: '',
+  mirrorEnabled: false
 };
 
 Page({
@@ -27,6 +30,7 @@ Page({
     showSettings: false,
     showFontSheet: false,
     fontList: [],
+    fontLangTab: 'zh',
     _previewVersion: 0,
     activeTab: 'content',
     scrollY: 9999,  // 初始在屏幕外，避免闪烁
@@ -56,7 +60,7 @@ Page({
         var shared = JSON.parse(decodeURIComponent(options.cfg));
         if (shared.config) {
           var sharedFont = shared.config.fontFamily || '';
-          this.setData({ config: Object.assign({}, DEFAULT_CONFIG, shared.config), fontStyle: sharedFont ? 'font-family: "' + sharedFont + '";' : '' });
+          this.setData({ config: Object.assign({}, DEFAULT_CONFIG, shared.config), fontStyle: sharedFont ? "font-family:'" + sharedFont + "';" : '' });
         }
         if (shared.rawText) {
           this.setData({ rawText: shared.rawText });
@@ -89,7 +93,15 @@ Page({
       var saved = wx.getStorageSync(STORAGE_KEY);
       if (saved && typeof saved === 'object') {
         var fontName = saved.fontFamily || '';
-        this.setData({ config: Object.assign({}, DEFAULT_CONFIG, saved), fontStyle: fontName ? 'font-family: "' + fontName + '";' : '' });
+        this.setData({ config: Object.assign({}, DEFAULT_CONFIG, saved), fontStyle: fontName ? "font-family:'" + fontName + "';" : '' });
+        // global: true 后字体跨页面存活，但冷启动需重新加载子集
+        if (fontName && this.data.rawText) {
+          var self2 = this;
+          var subsetText = (this.data.rawText || '').replace(/\n/g, '');
+          fontLoader.loadFont(fontName, subsetText, function (ok) {
+            if (ok) self2.setData({ fontStyle: "font-family:'" + fontName + "';" });
+          });
+        }
       }
     } catch (e) { /* ignore */ }
   },
@@ -102,7 +114,7 @@ Page({
       var sharedText = (self.data.rawText || '').replace(/\n/g, '');
       if (sharedFont && sharedText) {
         fontLoader.loadFont(sharedFont, sharedText, function (ok) {
-          if (ok) self.setData({ fontStyle: 'font-family: "' + sharedFont + '";' });
+          if (ok) self.setData({ fontStyle: "font-family:'" + sharedFont + "';" });
         });
       }
     }
@@ -110,23 +122,19 @@ Page({
       self._initTimer = null;
       self._measureAndStart();
     }, 500);
+  },
 
-    // 初始化插屏广告（5秒后展示）
-    adManager.initInterstitial('adunit-cfc3c31d23b35363');
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-cfc3c31d23b35363');
-    }, 5000);
+  onShow: function () {
+    // 从其他页面返回时重新测量并启动滚动
+    if (!this._scrollActive && this._screenH > 0) {
+      this._remeasure();
+    }
   },
 
   onUnload: function () {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
@@ -282,8 +290,6 @@ Page({
   closeSettings: function () {
     this.setData({ showSettings: false });
     try { wx.setStorageSync(STORAGE_KEY, this.data.config); } catch (e) { /* ignore */ }
-    // 关闭设置面板时30%概率展示插屏广告
-    adManager.showInterstitial('adunit-cfc3c31d23b35363');
 
     // 上报内容日志（内容为空时不上报）
     var rawText = this.data.rawText || '';
@@ -309,28 +315,37 @@ Page({
 
   onFontSelect: function (e) {
     var fontName = e.currentTarget.dataset.font || '';
-    this.setData({ "config.fontFamily": fontName });
     if (fontName) {
       var self = this;
-      // 全文去重去换行（最多50字），确保所有文字都有字体效果
       var subsetText = (self.data.rawText || '').replace(/\n/g, '');
       fontLoader.loadFont(fontName, subsetText, function (ok) {
-        // 字体加载完再设 fontStyle，确保 WXML 渲染时字体已注册
-        self.setData({ fontStyle: ok ? 'font-family: "' + fontName + '";' : '' });
-        self._remeasure();
+        if (ok) {
+          self.setData({
+            "config.fontFamily": fontName,
+            fontStyle: "font-family:'" + fontName + "';"
+          });
+          self._remeasure();
+        } else {
+          wx.showToast({ title: '字体加载失败', icon: 'none' });
+        }
       });
     } else {
-      this.setData({ fontStyle: '' });
+      this.setData({ "config.fontFamily": '', fontStyle: '' });
       this._remeasure();
     }
   },
+  onFontLangTap: function (e) {
+    var lang = e.currentTarget.dataset.lang;
+    if (lang) this.setData({ fontLangTab: lang });
+  },
+
   onTabChange: function (e) {
     var tab = e.currentTarget.dataset.tab;
     if (!tab) return;
     this.setData({ activeTab: tab });
     if (tab === 'font' && this.data.fontList.length > 0) {
       var self = this;
-      fontLoader.loadPreviewFonts(this.data.fontList, function (count) {
+      fontLoader.loadPreviewFonts(this.data.fontList).then(function (count) {
         self.setData({ _previewVersion: count });
       });
     }
@@ -338,14 +353,37 @@ Page({
 
   // ========== 文本输入 ==========
 
-  onTextBlur: function (e) {
+  onTextBlur: async function (e) {
     var text = e.detail.value || '';
     if (text.length > 1000) {
       text = text.slice(0, 1000);
       wx.showToast({ title: '最多1000字', icon: 'none' });
     }
+
+    try {
+      var isSafe = await checkTextSecurity(text);
+      if (!isSafe) {
+        wx.showToast({ title: '内容包含敏感信息', icon: 'none', duration: 2000 });
+        return;
+      }
+    } catch (err) { /* 检查失败不阻止 */ }
+
     this.setData({ rawText: text }, this._remeasure);
-    if (text && text.trim()) this._saveHistory(text);
+    this._handleTextChange(text);
+  },
+
+  _handleTextChange: function (text) {
+    var fontName = this.data.config.fontFamily;
+    var self = this;
+    if (fontName && text) {
+      // 文本变更后重新加载字体子集，确保新文字有字体效果
+      var subsetText = text.replace(/\n/g, '');
+      fontLoader.loadFont(fontName, subsetText, function (ok) {
+        self.setData({ fontStyle: ok ? "font-family:'" + fontName + "';" : '' });
+        self._remeasure();
+      });
+    }
+    if (text && text.trim()) self._saveHistory(text);
   },
 
   // ========== 样式设置 ==========
@@ -361,6 +399,12 @@ Page({
         if (rect && rect.height > 0) self._blockHeight = rect.height;
       }).exec();
     }, 400);
+  },
+
+  onLineHeightChange: function (e) {
+    this.setData({ 'config.lineHeight': e.detail });
+    var self = this;
+    setTimeout(function () { self._remeasure(); }, 300);
   },
 
   // ========== 颜色设置（ColorPicker 回调） ==========
@@ -402,6 +446,10 @@ Page({
     var direction = e.currentTarget.dataset.direction;
     if (!direction) return;
     this.setData({ 'config.screenDirection': direction }, this._remeasure);
+  },
+
+  onMirrorChange: function (e) {
+    this.setData({ 'config.mirrorEnabled': e.detail });
   },
 
   // ========== 清空 & 历史 ==========
@@ -461,6 +509,7 @@ Page({
     var item = this.data.historyList[index];
     if (item) {
       this.setData({ rawText: item.text, showHistorySheet: false }, this._remeasure);
+      this._handleTextChange(item.text);
     }
   },
 

@@ -10,7 +10,7 @@
  *   6. 多步物理/帧，线条更密集
  */
 
-const adManager = require("../../utils/adManager.js");
+
 
 // ===================================================================
 // 1. UTILITY: Perlin 3D Noise (port from weavesilk noise.js)
@@ -274,7 +274,6 @@ Page({
   _cx: 0, _cy: 0,
   _animationId: null,
   _initTimer: null,
-  _adTimer: null,
   _curve: [],
   _sparkles: [],
   _touchActive: false,
@@ -335,8 +334,6 @@ Page({
     this._colorInterp = hclInterpolate(PALETTE[0].color, PALETTE[0].highlight);
     this._initDrawInstructions();
     this._initRewardedVideoAd();
-    // 初始化插屏广告
-    adManager.initInterstitial('adunit-f749bc6a9b577d1e');
   },
 
   onShow: function () {},
@@ -347,12 +344,6 @@ Page({
       self._initTimer = null;
       self._initCanvas();
     }, 200);
-
-    // 5秒后展示插屏广告（最小间隔120秒）
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-f749bc6a9b577d1e');
-    }, 5000);
   },
 
   onUnload: function () {
@@ -363,12 +354,6 @@ Page({
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-
-    // 清理广告定时器
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
 
     // 停止加速器监听（关键！）
@@ -907,8 +892,6 @@ Page({
     }
     this._curve = [];
     this._sparkles = [];
-    // 清除画布时30%概率展示插屏广告（最小间隔120秒）
-    adManager.showInterstitial('adunit-f749bc6a9b577d1e');
   },
 
   // ===== 导出 =====

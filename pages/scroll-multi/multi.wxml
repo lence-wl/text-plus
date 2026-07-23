@@ -3,9 +3,9 @@
 	<back-btn />
 
 	<!-- 滚动区域（双击打开设置） -->
-	<view class="scroll-stage {{config.screenDirection === 'landscape' ? 'scroll-stage--landscape' : ''}}" style="background: {{config.bgColor}};" bindtouchstart="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent">
+	<view class="scroll-stage {{config.screenDirection === 'landscape' ? 'scroll-stage--landscape' : ''}} {{config.mirrorEnabled ? 'scroll-stage--mirror' : ''}}" style="background: {{config.bgColor}};" bindtouchstart="touchEvent" bindtouchend="touchEvent" bindtouchcancel="touchEvent">
 		<view class="scroll-track" style="transform: translateY({{scrollY}}px);font-size: {{config.fontSize}}px;color: {{config.textColor}};{{fontStyle}}">
-			<view class="scroll-block {{config.glowEnabled ? 'scroll-block--glow' : ''}}" style="text-align: {{config.textAlign}}; --glow-blur: {{config.glowBlur}}px; --glow-color: {{config.glowColor}};">
+			<view class="scroll-block {{config.glowEnabled ? 'scroll-block--glow' : ''}}" style="text-align: {{config.textAlign}};line-height: {{config.lineHeight}}; --glow-blur: {{config.glowBlur}}px; --glow-color: {{config.glowColor}};">
 				{{rawText}}
 			</view>
 		</view>
@@ -29,6 +29,7 @@
 			<view class="tab-item {{activeTab === 'color' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="color">颜色</view>
 			<view class="tab-item {{activeTab === 'glow' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="glow">发光</view>
 			<view class="tab-item {{activeTab === 'screen' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="screen">滚动</view>
+			<view class="tab-item {{activeTab === 'mirror' ? 'tab-item--active' : ''}}" bindtap="onTabChange" data-tab="mirror">镜像</view>
 		</view>
 
 		<!-- 可滚动内容 -->
@@ -59,6 +60,13 @@
 					</van-slider>
 				</view>
 
+
+				<view class="set-row">
+					<text class="set-row__label">行高</text>
+					<van-slider min="1" max="3" step="0.1" value="{{config.lineHeight}}" use-button-slot bind:change="onLineHeightChange">
+						<view class="custom-btn" slot="button">{{config.lineHeight}}</view>
+					</van-slider>
+				</view>
 				<view class="set-row">
 					<text class="set-row__label">对齐方式</text>
 					<view class="align-picker">
@@ -154,8 +162,30 @@
 			</view>
 
 
+
+			<!-- ========== 镜像 ========== -->
+			<view class="tab-pane" wx:if="{{activeTab === 'mirror'}}">
+				<view class="mirror-hint">💡 直播时开启，屏幕中文字就可以正常显示了哦</view>
+				<view class="set-row">
+					<text class="set-row__label">直播镜像</text>
+					<van-switch checked="{{config.mirrorEnabled}}" bind:change="onMirrorChange" />
+				</view>
+				<view class="set-row">
+					<ad-custom
+						unit-id="adunit-cc7ea8b53a9a2533"
+						bindload="adLoad"
+						binderror="adError"
+						bindclose="adClose"
+						style="width:100%; min-height:200rpx; border-radius:8rpx;"
+					></ad-custom>
+				</view>
+			</view>
       <!-- ========== 字体 ========== -->
       <view class="tab-pane" wx:if="{{activeTab === 'font'}}">
+        <view class="font-lang-tabs">
+          <view class="font-lang-tab {{fontLangTab === 'zh' ? 'font-lang-tab--on' : ''}}" bindtap="onFontLangTap" data-lang="zh">中文</view>
+          <view class="font-lang-tab {{fontLangTab === 'en' ? 'font-lang-tab--on' : ''}}" bindtap="onFontLangTap" data-lang="en">English</view>
+        </view>
         <view class="fonts">
           <view class="font-card {{!config.fontFamily ? 'font-card--on' : ''}}"
             bindtap="onFontSelect" data-font="">
@@ -163,8 +193,9 @@
           </view>
           <block wx:for="{{fontList}}" wx:for-item="f" wx:key="name">
             <view class="font-card {{config.fontFamily===f.name?'font-card--on':''}}"
+              wx:if="{{f.lang === fontLangTab}}"
               bindtap="onFontSelect" data-font="{{f.name}}">
-              <text class="font-card__preview" style="font-family:{{f.name}}">{{f.previewText}}</text>
+              <text class="font-card__preview" style="font-family:'{{f.name}}'">{{f.previewText}}</text>
             </view>
           </block>
         </view>

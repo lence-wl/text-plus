@@ -4,7 +4,7 @@
  */
 
 const { checkTextSecurity } = require("../../utils/security.js");
-const adManager = require("../../utils/adManager.js");
+
 const api = require("../../utils/api.js");
 const fontLoader = require("../../utils/fontLoader.js");
 
@@ -87,8 +87,6 @@ Page({
       self.setData({ fontList: list });
     });
     this._initRewardedVideoAd();
-    // 初始化插屏广告（补充展示）
-    adManager.initInterstitial('adunit-e27403557732ca1a');
   },
 
   _calcCanvasSize: function (rows, cols) {
@@ -129,22 +127,12 @@ Page({
         }, 600);
       }
     }
-
-    // 5秒后展示插屏广告（补充激励视频之外的广告位，最小间隔90秒）
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-e27403557732ca1a');
-    }, 5000);
   },
 
   onUnload: function () {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     if (this._tapTimer) {
       clearTimeout(this._tapTimer);
@@ -460,7 +448,17 @@ Page({
     } else {
       text = text.charAt(0);
     }
-    this.setData({ 'config.text': text }, () => this._drawPreview());
+    var self = this;
+    this.setData({ 'config.text': text }, function () {
+      // 文字改动时，若有自定义字体需重新请求字体子集
+      if (self.data.config.fontFamily && text) {
+        fontLoader.loadFont(self.data.config.fontFamily, text, function (ok) {
+          if (ok) self._drawPreview();
+        });
+      } else {
+        self._drawPreview();
+      }
+    });
   },
 
   // ========== 颜色变更 ==========

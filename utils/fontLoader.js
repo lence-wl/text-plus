@@ -10,6 +10,20 @@ var _previewRegistered = {}
 var TEMP_URL_TTL = 2 * 60 * 60 * 1000
 var FILEID_STORAGE_KEY = 'font_fileid_cache'
 
+/**
+ * 计算字符串哈希（djb2 算法，返回 32 位 hex）
+ * 与服务端 MD5 思路一致：用 font:text 的哈希作为缓存 key
+ * 避免长文本作为 storage key 带来性能问题
+ */
+function _hash(str) {
+  var hash = 5381
+  for (var i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i) // hash * 33 + ch
+    hash = hash | 0 // 32 位整数
+  }
+  return (hash >>> 0).toString(16)
+}
+
 /** 持久化 fileID 缓存 */
 function _loadFileIDCache() {
   try {
@@ -25,27 +39,36 @@ function _saveFileIDCache(cache) {
 /** 获取字体列表（含预览文字） */
 function getFontList() {
   return new Promise(function (resolve) {
-    var token = api.getToken()
-    if (!token) { resolve([]); return }
-
-    wx.request({
-      url: api.getBaseUrl() + '/fonts/list',
-      method: 'GET',
-      header: { 'Authorization': 'Bearer ' + token },
-      success: function (res) {
-        if (res.data && res.data.code === 0) {
-          var list = res.data.data || []
-          // 和字字不厌一致：中文显示"字字不厌"，英文显示"zi zi bu yan"
-          list.forEach(function (f) {
-            f.previewText = f.lang === 'en' ? 'zi zi bu yan' : '字字不厌'
-          })
-          resolve(list)
-        } else {
-          resolve([])
-        }
-      },
-      fail: function () { resolve([]) }
-    })
+    function doRequest(isRetry) {
+      var token = api.getToken()
+      if (!token) {
+        _ensureToken(function () { doRequest(false) })
+        return
+      }
+      wx.request({
+        url: api.getBaseUrl() + '/fonts/list',
+        method: 'GET',
+        header: { 'Authorization': 'Bearer ' + token },
+        success: function (res) {
+          if (res.data && res.data.code === 0) {
+            var list = res.data.data || []
+            // previewText 优先使用服务端返回值，服务端未返回时使用默认值
+            list.forEach(function (f) {
+              if (!f.previewText) {
+                f.previewText = f.lang === 'en' ? 'Qing Hui' : '轻绘壁纸'
+              }
+            })
+            resolve(list)
+          } else if (res.statusCode === 401 && isRetry) {
+            api.login().then(function () { doRequest(false) })
+          } else {
+            resolve([])
+          }
+        },
+        fail: function () { resolve([]) }
+      })
+    }
+    doRequest(true)
   })
 }
 
@@ -79,6 +102,7 @@ function loadPreviewFonts(fontList, onProgress) {
       wx.loadFontFace({
         family: name,
         source: 'url("' + f.previewFileID + '")',
+        global: true,
         success: function () {
           console.log('[fontLoader] 预览注册成功:', name)
           _onPreviewDone()
@@ -118,7 +142,8 @@ function loadFont(fontName, text, callback) {
     if (!seen[ch]) { seen[ch] = true; deduped += ch }
   }
 
-  var cacheKey = fontName + ':' + deduped
+  // 用 hash 作为缓存 key，与服务端思路一致，避免长文本 key
+  var cacheKey = _hash(fontName + ':' + deduped)
   var cached = _cache[cacheKey]
   if (cached && cached.expireAt > Date.now()) {
     _register(fontName, cached.fileID, callback)
@@ -220,6 +245,7 @@ function _register(fontName, fileID, callback) {
   wx.loadFontFace({
     family: fontName,
     source: 'url("' + fileID + '")',
+    global: true,
     success: function () {
       console.log('[fontLoader] 注册成功:', fontName)
       if (callback) callback(true)
@@ -231,13 +257,8 @@ function _register(fontName, fileID, callback) {
   })
 }
 
-function resetPreviewCache() {
-  _previewRegistered = {}
-}
-
 module.exports = {
   getFontList: getFontList,
   loadFont: loadFont,
-  loadPreviewFonts: loadPreviewFonts,
-  resetPreviewCache: resetPreviewCache
+  loadPreviewFonts: loadPreviewFonts
 }

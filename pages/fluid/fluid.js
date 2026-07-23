@@ -3,7 +3,7 @@
  */
 
 var STORAGE_KEY = 'fluid_config';
-const adManager = require("../../utils/adManager.js");
+
 
 var PALETTES = [
   { name: '极光', colors: ['#00e5ff','#00b0ff','#7c4dff','#e040fb'] },
@@ -63,8 +63,6 @@ Page({
         this.setData({ cfg: c, currentPalette: PALETTES[c.paletteIdx || 0] });
       }
     } catch (e) {}
-    // 初始化插屏广告
-    adManager.initInterstitial('adunit-1e816ec0731138cf');
   },
 
   onShow: function () {},
@@ -75,22 +73,12 @@ Page({
       self._initTimer = null;
       self._init();
     }, 200);
-
-    // 5秒后展示插屏广告（最小间隔120秒）
-    self._adTimer = setTimeout(function () {
-      self._adTimer = null;
-      adManager.showInterstitial('adunit-1e816ec0731138cf');
-    }, 5000);
   },
 
   onUnload: function () {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
-    }
-    if (this._adTimer) {
-      clearTimeout(this._adTimer);
-      this._adTimer = null;
     }
     if (this._animId && this._canvas) this._canvas.cancelAnimationFrame(this._animId);
     wx.stopAccelerometer();

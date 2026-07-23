@@ -1,10 +1,10 @@
-var STORAGE_FONT_MODAL = 'font_modal_dismissed'
+var STORAGE_MIRROR_MODAL = 'mirror_modal_dismissed'
 var fontLoader = require('../../utils/fontLoader.js')
 
 Page({
   data: {
     showGuide: false,
-    showFontModal: false,
+    showMirrorModal: false,
     guideTop: 0,
     guideLeft: 0,
     arrowOffset: 0,
@@ -94,21 +94,21 @@ Page({
   },
 
   onShow: function () {
-    // 字体功能弹窗：只显示一次
+    // 镜像功能弹窗：只显示一次
     try {
-      var dismissed = wx.getStorageSync(STORAGE_FONT_MODAL);
+      var dismissed = wx.getStorageSync(STORAGE_MIRROR_MODAL);
       if (!dismissed) {
-        this.setData({ showFontModal: true });
+        this.setData({ showMirrorModal: true });
       }
     } catch (e) {
-      this.setData({ showFontModal: true });
+      this.setData({ showMirrorModal: true });
     }
 
-    // 随机选取3个中文字体
+    // 随机选取中文字体
     this._loadRandomFonts();
     // 随机特效
     this._randomEffect();
-    // 从二级页面返回后重新注册字体（避免被覆盖）
+    // 从二级页面返回后重新加载活跃字体子集（文字可能已变更）
     this._reloadActiveFonts();
   },
 
@@ -118,24 +118,19 @@ Page({
     var multiFonts = self.data.multiScrollFonts;
     if (!singleFonts.length && !multiFonts.length) return;
 
-    // 重新注册预览字体（每次 onShow 强制重注，因为去掉 global 后是页面级注册）
-    fontLoader.resetPreviewCache();
-    var allPicked = singleFonts.concat(multiFonts);
-    fontLoader.loadPreviewFonts(allPicked);
-
-    // 重新注册活跃字体的子集
+    // global: true 后预览字体不会丢失，只需重载活跃字体的子集
     var sIdx = self.data.singleActiveFont;
     var mIdx = self.data.multiActiveFont;
     var sFont = singleFonts[sIdx];
     var mFont = multiFonts[mIdx];
     if (sFont && self.data.singleScrollText) {
       fontLoader.loadFont(sFont.name, self.data.singleScrollText, function (ok) {
-        if (ok) self.setData({ singlePreviewStyle: 'font-family:' + sFont.name + ';' });
+        if (ok) self.setData({ singlePreviewStyle: "font-family:'" + sFont.name + "';" });
       });
     }
     if (mFont && self.data.multiScrollLines.length) {
       fontLoader.loadFont(mFont.name, self.data.multiScrollLines.join(''), function (ok) {
-        if (ok) self.setData({ multiPreviewStyle: 'font-family:' + mFont.name + ';' });
+        if (ok) self.setData({ multiPreviewStyle: "font-family:'" + mFont.name + "';" });
       });
     }
   },
@@ -195,9 +190,9 @@ Page({
 
       if (single.length === 0 && multi.length === 0) return;
 
-      // 标签预览：loadPreviewFonts
+      // 标签预览：global: true 注册，等所有字体就绪后一次性 setData
       var allPicked = single.concat(multi);
-      fontLoader.loadPreviewFonts(allPicked, function (count) {
+      fontLoader.loadPreviewFonts(allPicked).then(function (count) {
         self.setData({
           scrollFonts: single,
           multiScrollFonts: multi,
@@ -210,20 +205,20 @@ Page({
       var multiText = self.data.multiScrollLines.join('');
       if (single.length && singleText) {
         fontLoader.loadFont(single[0].name, singleText, function (ok) {
-          if (ok) self.setData({ singlePreviewStyle: 'font-family:' + single[0].name + ';' });
+          if (ok) self.setData({ singlePreviewStyle: "font-family:'" + single[0].name + "';" });
         });
       }
       if (multi.length && multiText) {
         fontLoader.loadFont(multi[0].name, multiText, function (ok) {
-          if (ok) self.setData({ multiPreviewStyle: 'font-family:' + multi[0].name + ';' });
+          if (ok) self.setData({ multiPreviewStyle: "font-family:'" + multi[0].name + "';" });
         });
       }
     });
   },
 
-  onDismissFontModal: function () {
-    this.setData({ showFontModal: false });
-    try { wx.setStorageSync(STORAGE_FONT_MODAL, '1'); } catch (e) { /* ignore */ }
+  onDismissMirrorModal: function () {
+    this.setData({ showMirrorModal: false });
+    try { wx.setStorageSync(STORAGE_MIRROR_MODAL, '1'); } catch (e) { /* ignore */ }
   },
 
   onTapItem: function (e) {
@@ -249,7 +244,7 @@ Page({
     if (!font || idx === this.data.singleActiveFont) return;
     var self = this;
     fontLoader.loadFont(font.name, self.data.singleScrollText, function (ok) {
-      if (ok) self.setData({ singleActiveFont: idx, singlePreviewStyle: 'font-family:' + font.name + ';' });
+      if (ok) self.setData({ singleActiveFont: idx, singlePreviewStyle: "font-family:'" + font.name + "';" });
     });
   },
 
@@ -259,7 +254,7 @@ Page({
     if (!font || idx === this.data.multiActiveFont) return;
     var self = this;
     fontLoader.loadFont(font.name, self.data.multiScrollLines.join(''), function (ok) {
-      if (ok) self.setData({ multiActiveFont: idx, multiPreviewStyle: 'font-family:' + font.name + ';' });
+      if (ok) self.setData({ multiActiveFont: idx, multiPreviewStyle: "font-family:'" + font.name + "';" });
     });
   },
 
